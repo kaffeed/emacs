@@ -27,3 +27,4 @@ forge-database.sqlite
 /transient/
 /history
 /.lsp-session-v1
+/woman-cache.el

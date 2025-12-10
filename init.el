@@ -22,8 +22,8 @@
 
 (global-display-line-numbers-mode t)
 (dolist (mode '(org-mode-hook
-		term-mode-hook
-		eshell-mode-hook))
+		        term-mode-hook
+		        eshell-mode-hook))
   (add-hook mode (lambda() (display-line-numbers-mode 0))))
 
 (defvar bootstrap-version)
@@ -46,7 +46,7 @@
 
 ;; Configure use-package to use straight.el by default
 (setq-default straight-use-package-by-default t
-      use-package-verbose t)
+              use-package-verbose t)
 
 ;;; ------------------------------------------------------------
 ;;; OS Settings
@@ -56,8 +56,8 @@
 
 (when *is-a-mac*
   (setq-default mac-command-modifier 'meta
-        mac-option-modifier  'none
-        default-input-method "MacOSX"))
+                mac-option-modifier  'none
+                default-input-method "MacOSX"))
 
 (when *is-a-linux*
   (setq-default x-super-keysym 'meta))
@@ -94,7 +94,11 @@
   :config
   (setq-default vertico-cycle t)
   (setq-default vertico-resize nil)
-  (vertico-mode 1))
+  (vertico-mode 1)
+  ;; Load vertico-multiform feature before configuring it
+  (require 'vertico-multiform)
+  (add-to-list 'vertico-multiform-categories '(embark-keybinding grid))
+  (vertico-multiform-mode))
 
 ;; The `marginalia' package provides helpful annotations next to
 ;; completion candidates in the minibuffer.  The information on
@@ -165,13 +169,24 @@
 ;; Further reading: https://protesilaos.com/emacs/dotemacs#h:61863da4-8739-42ae-a30f-6e9d686e1995
 (use-package embark
   :bind (("C-." . embark-act)
+         ("C-;" . embark-dwim)
+         ("C-h B" . embark-bindings)
          :map minibuffer-local-map
          ("C-c C-c" . embark-collect)
-         ("C-c C-e" . embark-export)))
+         ("C-c C-e" . embark-export))
+  :config
+  ;; Hide the mode line of the Embark live/completions buffers
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none))))
+  )
 
 ;; The `embark-consult' package is glue code to tie together `embark'
 ;; and `consult'.
-(use-package embark-consult)
+(use-package embark-consult
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
 
 ;; The `wgrep' packages lets us edit the results of a grep search
 ;; while inside a `grep-mode' buffer.  All we need is to toggle the
@@ -180,7 +195,7 @@
 ;;
 ;; Further reading: https://protesilaos.com/emacs/dotemacs#h:9a3581df-ab18-4266-815e-2edd7f7e4852
 (use-package wgrep
-   :bind ( :map grep-mode-map
+  :bind ( :map grep-mode-map
           ("e" . wgrep-change-to-wgrep-mode)
           ("C-x C-q" . wgrep-change-to-wgrep-mode)
           ("C-c C-c" . wgrep-finish-edit)))
@@ -250,16 +265,23 @@
   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
   (setq lsp-keymap-prefix "C-c l")
   :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
-         (csharp-mode . lsp)
+         (csharp-mode . lsp-deferred)
+
          ;; if you want which-key integration
          (lsp-mode . lsp-enable-which-key-integration))
-  :commands lsp
-  :custom
-  (setq lsp-headerline-breadcrumb-enable nil))
+  :commands (lsp lsp-deferred)
+  :config
+  (setq-default lsp-headerline-breadcrumb-enable nil)
+  (setq-default lsp-use-plists t))
 
 (setq fast-read-process-output (* 1024 1024))
 (use-package lsp-ui :commands lsp-ui-mode)
 (use-package which-key :config (which-key-mode))
+
+(use-package sharper
+  :demand t
+  :bind
+  ("C-c d" . sharper-main-transient))
 
 ;;; ------------------------------------------------------------
 ;;; Magit
@@ -307,12 +329,31 @@
   (setq evil-auto-indent nil))
 
 (use-package org
-  :hook (org-mode . dw/org-mode-setup)
-  )
+  :hook (org-mode . dw/org-mode-setup))
 
 ;;; ------------------------------------------------------------
 ;;; Misc packages
 ;;; ------------------------------------------------------------
+
+;; Compile command
+(global-set-key (kbd "C-c c") 'compile)
+
+(use-package ace-window
+  :bind (("M-o" . ace-window))
+  :custom
+  (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
+
+(use-package multiple-cursors
+  :bind (("C->" .           mc/mark-next-like-this)
+         ("C-<" .           mc/mark-previous-like-this)
+         ("C-c C-<" .       mc/mark-all-like-this)
+         ("C-S-c C-S-c" .   mc/edit-lines)
+         ("C-S-<mouse-1>" . mc/add-cursor-on-click)))
+
+(use-package rg
+  :straight (:type git :host github :repo "dajva/rg.el")
+  ;; :custom
+  :config (rg-enable-default-bindings))
 
 (use-package expand-region
   :bind ("C-=" . er/expand-region))
@@ -320,8 +361,8 @@
 (use-package pulsar
   :bind
   (:map global-map
-    ("C-x l" . pulsar-pulse-line) ; overrides `count-lines-page'
-    ("C-x L" . pulsar-highlight-permanently-dwim)) ; or use `pulsar-highlight-temporarily-dwim'
+        ("C-x l" . pulsar-pulse-line) ; overrides `count-lines-page'
+        ("C-x L" . pulsar-highlight-permanently-dwim)) ; or use `pulsar-highlight-temporarily-dwim'
   :init
   (pulsar-global-mode 1)
   :config
@@ -332,10 +373,38 @@
   (setq pulsar-highlight-face 'pulsar-magenta))
 
 (editorconfig-mode t)
+
+;;; ------------------------------------------------------------
+;;; WoMan - Man page browser
+;;; ------------------------------------------------------------
+(use-package woman
+  :straight (:type built-in)
+  :bind (("C-c m" . woman))
+  :init
+  ;; Dynamically build man page paths by checking which directories exist
+  (setq woman-manpath
+        (seq-filter #'file-directory-p
+                    '("C:/msys64/usr/share/man"
+                      "C:/msys64/mingw64/share/man"
+                      "C:/msys64/mingw32/share/man")))
+  :custom
+  ;; Cache man pages for faster access (important with large man page collections)
+  (woman-cache-filename (expand-file-name "woman-cache.el" user-emacs-directory))
+  ;; Don't ask which topic when there's only one match
+  (woman-use-topic-at-point t)
+  ;; Fill column for better readability
+  (woman-fill-column 80)
+  ;; Use own frame or window
+  (woman-use-own-frame nil)
+  :config
+  ;; Build cache on first run - can take a moment but speeds up future lookups
+  (unless (file-exists-p woman-cache-filename)
+    (woman-file-name "")))
+
 ;;; ------------------------------------------------------------
 ;;; Custom settings file
 ;;; ------------------------------------------------------------
-(setq custom-file (locate-user-emacs-file "custom-vars.el")
+(setq custom-file (locate-user-emacs-file "custom-vars.el"))
 (load custom-file 'noerror 'nomessage)
 
 (provide 'init)

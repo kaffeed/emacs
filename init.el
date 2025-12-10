@@ -1,7 +1,15 @@
-;; ------------------------------------------------------------
+;;; ------------------------------------------------------------
 ;;; Package Setup
 ;;; ------------------------------------------------------------
-(require 'package)
+(setq gc-cons-threshold (* 50 1000 1000))
+
+;; Prefer UTF-8 for everything
+(prefer-coding-system 'utf-8)
+(setq locale-coding-system 'utf-8)
+(set-terminal-coding-system 'utf-8)
+(set-keyboard-coding-system 'utf-8)
+(set-selection-coding-system 'utf-8)
+(setq default-buffer-file-coding-system 'utf-8)
 
 (setq inhibit-startup-message t
       inhibit-startup-screen t
@@ -18,22 +26,27 @@
 		eshell-mode-hook))
   (add-hook mode (lambda() (display-line-numbers-mode 0))))
 
-(setq package-archives
-      '(("melpa"        . "https://melpa.org/packages/")
-        ("melpa-stable" . "https://stable.melpa.org/packages/")
-        ("org"          . "https://orgmode.org/elpa/")
-        ("gnu"          . "https://elpa.gnu.org/packages/")))
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name
+        "straight/repos/straight.el/bootstrap.el"
+        (or (bound-and-true-p straight-base-dir)
+            user-emacs-directory)))
+      (bootstrap-version 7))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
 
-(package-initialize)
+(straight-use-package 'use-package)
 
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents)
-  (package-install 'use-package))
-
-(require 'use-package)
-(setq use-package-always-ensure t
+;; Configure use-package to use straight.el by default
+(setq straight-use-package-by-default t
       use-package-verbose t)
-
 
 ;;; ------------------------------------------------------------
 ;;; OS Settings
@@ -51,14 +64,18 @@
 
 (add-to-list 'default-frame-alist '(fullscreen . maximized))
 
-
 ;;; ------------------------------------------------------------
 ;;; Theme
 ;;; ------------------------------------------------------------
-(use-package doom-themes
-  :init
-  (load-theme 'doom-wilmersdorf t))
 
+
+(use-package nano
+  :straight (:type git :host github :repo "rougier/nano-emacs")
+  ;; :custom
+  :config
+  (require 'nano)
+  (require 'nano-theme)
+  (load-theme 'nano-theme-dark))
 
 ;;; ------------------------------------------------------------
 ;;; Environment Variables (important for macOS)
@@ -68,130 +85,123 @@
   (when (memq window-system '(mac ns x))
     (exec-path-from-shell-initialize)))
 
-
-;;; ------------------------------------------------------------
-;;; Completion Framework: Vertico + Orderless
-;;; ------------------------------------------------------------
-
+;; The `vertico' package applies a vertical layout to the minibuffer.
+;; It also pops up the minibuffer eagerly so we can see the available
+;; options without further interactions.  This package is very fast
+;; and "just works", though it also is highly customisable in case we
+;; need to modify its behaviour.
+;;
+;; Further reading: https://protesilaos.com/emacs/dotemacs#h:cff33514-d3ac-4c16-a889-ea39d7346dc5
 (use-package vertico
-  :init
-  (vertico-mode))
+  :config
+  (setq vertico-cycle t)
+  (setq vertico-resize nil)
+  (vertico-mode 1))
 
-(use-package orderless
-  :custom
-  (completion-styles '(orderless basic))
-  (completion-category-defaults nil)
-  (completion-category-overrides
-   '((file (styles partial-completion)))))
-
-;;; ------------------------------------------------------------
-;;; Helpful Annotations: Marginalia
-;;; ------------------------------------------------------------
-
+;; The `marginalia' package provides helpful annotations next to
+;; completion candidates in the minibuffer.  The information on
+;; display depends on the type of content.  If it is about files, it
+;; shows file permissions and the last modified date.  If it is a
+;; buffer, it shows the buffer's size, major mode, and the like.
+;;
+;; Further reading: https://protesilaos.com/emacs/dotemacs#h:bd3f7a1d-a53d-4d3e-860e-25c5b35d8e7e
 (use-package marginalia
-  :init
-  (marginalia-mode))
+  :config
+  (marginalia-mode 1))
 
+;; The `orderless' package lets the minibuffer use an out-of-order
+;; pattern matching algorithm.  It matches space-separated words or
+;; regular expressions in any order.  In its simplest form, something
+;; like "ins pac" matches `package-menu-mark-install' as well as
+;; `package-install'.  This is a powerful tool because we no longer
+;; need to remember exactly how something is named.
+;;
+;; Note that Emacs has lots of "completion styles" (pattern matching
+;; algorithms), but let us keep things simple.
+;;
+;; Further reading: https://protesilaos.com/emacs/dotemacs#h:7cc77fd0-8f98-4fc0-80be-48a758fcb6e2
+(use-package orderless
+  :config
+  (setq completion-styles '(orderless basic)))
 
-;;; ------------------------------------------------------------
-;;; Consult (search, M-x enhanced, buffer switching...)
-;;; ------------------------------------------------------------
-
+;; The `consult' package provides lots of commands that are enhanced
+;; variants of basic, built-in functionality.  One of the headline
+;; features of `consult' is its preview facility, where it shows in
+;; another Emacs window the context of what is currently matched in
+;; the minibuffer.  Here I define key bindings for some commands you
+;; may find useful.  The mnemonic for their prefix is "alternative
+;; search" (as opposed to the basic C-s or C-r keys).
+;;
+;; Further reading: https://protesilaos.com/emacs/dotemacs#h:22e97b4c-d88d-4deb-9ab3-f80631f9ff1d
 (use-package consult
-  :bind (
-         ;; C-x bindings
+  :bind (;; A recursive grep
+         ("M-s M-g" . consult-grep)
+         ;; Search for files names recursively
+         ("M-s M-f" . consult-find)
+         ;; Search through the outline (headings) of the file
+         ("M-s M-o" . consult-outline)
+         ;; Search the current buffer
+         ("M-s M-l" . consult-line)
+         ;; Switch to another buffer, or bookmarked file, or recently
+         ;; opened file.
+         ("M-s M-b" . consult-buffer)))
 
-         ("C-x b"   . consult-buffer)
-         ("C-x 4 b" . consult-buffer-other-window)
-         ("C-x 5 b" . consult-buffer-other-frame)
-
-         ;; M-g goto commands
-         ("M-g g" . consult-goto-line)
-         ("M-g M-g" . consult-goto-line)
-         ("M-g o" . consult-outline)
-         ("M-g i" . consult-imenu)
-         ("M-g I" . consult-imenu-multi)
-
-         ;; M-s search commands
-         ("C-s" . consult-line)
-         ("M-s L" . consult-line-multi)
-         ("M-s g" . consult-grep)
-         ("M-s r" . consult-ripgrep)
-
-         ;; History
-         ("C-x M-:" . consult-complex-command)
-         ("M-y"     . consult-yank-pop)
-
-         ;; Minibuffer history
-         :map minibuffer-local-map
-         ("M-s" . consult-history)
-         ("M-r" . consult-history))
-
-  :config
-  (consult-customize
-   consult-theme
-   :preview-key '(:debounce 0.2 any))
-
-  (setq xref-show-xrefs-function        #'consult-xref
-        xref-show-definitions-function #'consult-xref))
-
-
-;;; ------------------------------------------------------------
-;;; Embark (action menus) + Embark-Consult (preview)
-;;; ------------------------------------------------------------
-
+;; The `embark' package lets you target the thing or context at point
+;; and select an action to perform on it.  Use the `embark-act'
+;; command while over something to find relevant commands.
+;;
+;; When inside the minibuffer, `embark' can collect/export the
+;; contents to a fully fledged Emacs buffer.  The `embark-collect'
+;; command retains the original behaviour of the minibuffer, meaning
+;; that if you navigate over the candidate at hit RET, it will do what
+;; the minibuffer would have done.  In contrast, the `embark-export'
+;; command reads the metadata to figure out what category this is and
+;; places them in a buffer whose major mode is specialised for that
+;; type of content.  For example, when we are completing against
+;; files, the export will take us to a `dired-mode' buffer; when we
+;; preview the results of a grep, the export will put us in a
+;; `grep-mode' buffer.
+;;
+;; Further reading: https://protesilaos.com/emacs/dotemacs#h:61863da4-8739-42ae-a30f-6e9d686e1995
 (use-package embark
-  :bind
-  (("C-." . embark-act)
-   ("C-;" . embark-dwim)
-   ("C-h B" . embark-bindings))
+  :bind (("C-." . embark-act)
+         :map minibuffer-local-map
+         ("C-c C-c" . embark-collect)
+         ("C-c C-e" . embark-export)))
 
-  :init
-  (setq prefix-help-command #'embark-prefix-help-command)
+;; The `embark-consult' package is glue code to tie together `embark'
+;; and `consult'.
+(use-package embark-consult)
 
-  :config
-  ;; Hide mode line in Embark buffers
-  (add-to-list 'display-buffer-alist
-               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
-                 nil
-                 (window-parameters (mode-line-format . none)))))
+;; The `wgrep' packages lets us edit the results of a grep search
+;; while inside a `grep-mode' buffer.  All we need is to toggle the
+;; editable mode, make the changes, and then type C-c C-c to confirm
+;; or C-c C-k to abort.
+;;
+;; Further reading: https://protesilaos.com/emacs/dotemacs#h:9a3581df-ab18-4266-815e-2edd7f7e4852
+(use-package wgrep
+  :bind ( :map grep-mode-map
+          ("e" . wgrep-change-to-wgrep-mode)
+          ("C-x C-q" . wgrep-change-to-wgrep-mode)
+          ("C-c C-c" . wgrep-finish-edit)))
 
-(use-package embark-consult
-  :after (embark consult)
-  :hook
-  (embark-collect-mode . consult-preview-at-point-mode))
+(savehist-mode 1)
+
+(recentf-mode 1)
 
 
 ;;; ------------------------------------------------------------
-;;; Projectile
+;;; Rojectile
 ;;; ------------------------------------------------------------
 (use-package projectile
+  :diminish projectile-mode
+  :config (projectile-mode)
+  :bind-keymap
+  ("C-c p" . projectile-command-map)
   :init
-  (projectile-mode 1)
-
-  ;; Makes the "C-x p" prefix available (Emacs 28+)
-  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
-
-  :custom
-  (projectile-enable-caching t)
-  (projectile-project-search-path '("~/source/work" "~/source/personal"))
-  (projectile-sort-order 'recently-active)
-  (projectile-track-known-projects-automatically t)
-  (projectile-switch-project-action #'projectile-dired)
-  (projectile-completion-system 'default) ;; Important for Vertico/Consult
-  (projectile-indexing-method 'alien)     ;; fastest for most systems, esp. with ripgrep
-
-  :config
-  ;; Ignore common junk
-  (add-to-list 'projectile-globally-ignored-directories "node_modules")
-  (add-to-list 'projectile-globally-ignored-directories ".git")
-  (add-to-list 'projectile-globally-ignored-files "TAGS"))
-(use-package projectile
-  :init
-  (projectile-mode 1)
-  :config
-  (setq projectile-enable-caching t
-        projectile-completion-system 'default))
+  (when (file-directory-p "~/source")
+    (setq projectile-project-search-path '("~/source" . 1)))
+  (setq projectile-switch-project-action #'projectile-find-file))
 
 ;;; ------------------------------------------------------------
 ;;; Company
@@ -227,10 +237,7 @@
         '((company-capf            ;; completion-at-point (LSP, modes, etc.)
            company-dabbrev-code)   ;; fallback for code-like text
           company-dabbrev))        ;; fallback for everything else
-  (let ((map company-active-map))
-    (mapc (lambda (x) (define-key map (format "%d" x)
-                        `(lambda () (interactive) (company-complete-number ,x))))
-          (number-sequence 0 9))))
+  )
 
 ;; Flycheck is the newer version of flymake and is needed to make lsp-mode not freak out.
 (use-package flycheck
@@ -325,6 +332,13 @@
 (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
 (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
 (set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch)
+
+;;; ------------------------------------------------------------
+;;; Misc packages
+;;; ------------------------------------------------------------
+
+(use-package expand-region
+  :bind ("C-=" . er/expand-region))
 
 ;;; ------------------------------------------------------------
 ;;; Custom settings file

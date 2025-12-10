@@ -23,3 +23,7 @@ tramp
 custom.el
 forge-database.sqlite
 /server/
+/straight/
+/quelpa/
+/transient/
+/history

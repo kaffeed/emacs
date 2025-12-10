@@ -10,7 +10,7 @@ semanticdb
 url
 ede-projects.el
 .DS_Store
-custom.el
+custom-vars.el
 places
 .smex-items
 savefile/
@@ -20,7 +20,6 @@ session*
 .cask
 tramp
 /var/pcache
-custom.el
 forge-database.sqlite
 /server/
 /straight/

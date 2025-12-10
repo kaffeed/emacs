@@ -133,7 +133,6 @@
 ;;
 ;; Further reading: https://protesilaos.com/emacs/dotemacs#h:22e97b4c-d88d-4deb-9ab3-f80631f9ff1d
 (use-package consult
-  :ensure t
   :bind (;; A recursive grep
          ("M-s M-g" . consult-grep)
          ;; Search for files names recursively
@@ -165,7 +164,6 @@
 ;;
 ;; Further reading: https://protesilaos.com/emacs/dotemacs#h:61863da4-8739-42ae-a30f-6e9d686e1995
 (use-package embark
-  :ensure t
   :bind (("C-." . embark-act)
          :map minibuffer-local-map
          ("C-c C-c" . embark-collect)
@@ -173,8 +171,7 @@
 
 ;; The `embark-consult' package is glue code to tie together `embark'
 ;; and `consult'.
-(use-package embark-consult
-  :ensure t)
+(use-package embark-consult)
 
 ;; The `wgrep' packages lets us edit the results of a grep search
 ;; while inside a `grep-mode' buffer.  All we need is to toggle the
@@ -256,7 +253,9 @@
          (csharp-mode . lsp)
          ;; if you want which-key integration
          (lsp-mode . lsp-enable-which-key-integration))
-  :commands lsp)
+  :commands lsp
+  :custom
+  (setq lsp-headerline-breadcrumb-enable nil))
 
 (setq fast-read-process-output (* 1024 1024))
 (use-package lsp-ui :commands lsp-ui-mode)
@@ -319,9 +318,8 @@
   :bind ("C-=" . er/expand-region))
 
 (use-package pulsar
-  :ensure t
   :bind
-  ( :map global-map
+  (:map global-map
     ("C-x l" . pulsar-pulse-line) ; overrides `count-lines-page'
     ("C-x L" . pulsar-highlight-permanently-dwim)) ; or use `pulsar-highlight-temporarily-dwim'
   :init
@@ -337,8 +335,8 @@
 ;;; ------------------------------------------------------------
 ;;; Custom settings file
 ;;; ------------------------------------------------------------
-(setq custom-file "~/.emacs.d/custom.el")
-(load custom-file t)
+(setq custom-file (locate-user-emacs-file "custom-vars.el")
+(load custom-file 'noerror 'nomessage)
 
 (provide 'init)
 ;;; init.el ends here

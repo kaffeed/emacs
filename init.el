@@ -1,7 +1,6 @@
 ;;; ------------------------------------------------------------
 ;;; Package Setup
 ;;; ------------------------------------------------------------
-(setq gc-cons-threshold (* 50 1000 1000))
 
 ;; Prefer UTF-8 for everything
 (prefer-coding-system 'utf-8)
@@ -9,7 +8,8 @@
 (set-terminal-coding-system 'utf-8)
 (set-keyboard-coding-system 'utf-8)
 (set-selection-coding-system 'utf-8)
-(setq default-buffer-file-coding-system 'utf-8)
+(setq-default default-buffer-file-coding-system 'utf-8)
+(setq gc-cons-threshold (* 50 1000 1000))
 
 (setq inhibit-startup-message t
       inhibit-startup-screen t
@@ -45,7 +45,7 @@
 (straight-use-package 'use-package)
 
 ;; Configure use-package to use straight.el by default
-(setq straight-use-package-by-default t
+(setq-default straight-use-package-by-default t
       use-package-verbose t)
 
 ;;; ------------------------------------------------------------
@@ -55,20 +55,18 @@
 (defconst *is-a-linux* (eq system-type 'gnu/linux))
 
 (when *is-a-mac*
-  (setq mac-command-modifier 'meta
+  (setq-default mac-command-modifier 'meta
         mac-option-modifier  'none
         default-input-method "MacOSX"))
 
 (when *is-a-linux*
-  (setq x-super-keysym 'meta))
+  (setq-default x-super-keysym 'meta))
 
 (add-to-list 'default-frame-alist '(fullscreen . maximized))
 
 ;;; ------------------------------------------------------------
 ;;; Theme
 ;;; ------------------------------------------------------------
-
-
 (use-package nano
   :straight (:type git :host github :repo "rougier/nano-emacs")
   ;; :custom
@@ -94,8 +92,8 @@
 ;; Further reading: https://protesilaos.com/emacs/dotemacs#h:cff33514-d3ac-4c16-a889-ea39d7346dc5
 (use-package vertico
   :config
-  (setq vertico-cycle t)
-  (setq vertico-resize nil)
+  (setq-default vertico-cycle t)
+  (setq-default vertico-resize nil)
   (vertico-mode 1))
 
 ;; The `marginalia' package provides helpful annotations next to
@@ -124,14 +122,143 @@
   :config
   (setq completion-styles '(orderless basic)))
 
+
 ;; The `consult' package provides lots of commands that are enhanced
 ;; variants of basic, built-in functionality.  One of the headline
 ;; features of `consult' is its preview facility, where it shows in
 ;; another Emacs window the context of what is currently matched in
-  :custom
-  (setq lsp-prefer-flymake nil ;; Flymake is outdated
-        lsp-headerline-breadcrumb-enable nil)) ;; I don't like the symbols on the header a-la-vscode, remove this if you like them.
+;; the minibuffer.  Here I define key bindings for some commands you
+;; may find useful.  The mnemonic for their prefix is "alternative
+;; search" (as opposed to the basic C-s or C-r keys).
+;;
+;; Further reading: https://protesilaos.com/emacs/dotemacs#h:22e97b4c-d88d-4deb-9ab3-f80631f9ff1d
+(use-package consult
+  :ensure t
+  :bind (;; A recursive grep
+         ("M-s M-g" . consult-grep)
+         ;; Search for files names recursively
+         ("M-s M-f" . consult-find)
+         ;; Search through the outline (headings) of the file
+         ("M-s M-o" . consult-outline)
+         ;; Search the current buffer
+         ("M-s M-l" . consult-line)
+         ;; Switch to another buffer, or bookmarked file, or recently
+         ;; opened file.
+         ("M-s M-b" . consult-buffer)))
 
+
+;; The `embark' package lets you target the thing or context at point
+;; and select an action to perform on it.  Use the `embark-act'
+;; command while over something to find relevant commands.
+;;
+;; When inside the minibuffer, `embark' can collect/export the
+;; contents to a fully fledged Emacs buffer.  The `embark-collect'
+;; command retains the original behaviour of the minibuffer, meaning
+;; that if you navigate over the candidate at hit RET, it will do what
+;; the minibuffer would have done.  In contrast, the `embark-export'
+;; command reads the metadata to figure out what category this is and
+;; places them in a buffer whose major mode is specialised for that
+;; type of content.  For example, when we are completing against
+;; files, the export will take us to a `dired-mode' buffer; when we
+;; preview the results of a grep, the export will put us in a
+;; `grep-mode' buffer.
+;;
+;; Further reading: https://protesilaos.com/emacs/dotemacs#h:61863da4-8739-42ae-a30f-6e9d686e1995
+(use-package embark
+  :ensure t
+  :bind (("C-." . embark-act)
+         :map minibuffer-local-map
+         ("C-c C-c" . embark-collect)
+         ("C-c C-e" . embark-export)))
+
+;; The `embark-consult' package is glue code to tie together `embark'
+;; and `consult'.
+(use-package embark-consult
+  :ensure t)
+
+;; The `wgrep' packages lets us edit the results of a grep search
+;; while inside a `grep-mode' buffer.  All we need is to toggle the
+;; editable mode, make the changes, and then type C-c C-c to confirm
+;; or C-c C-k to abort.
+;;
+;; Further reading: https://protesilaos.com/emacs/dotemacs#h:9a3581df-ab18-4266-815e-2edd7f7e4852
+(use-package wgrep
+   :bind ( :map grep-mode-map
+          ("e" . wgrep-change-to-wgrep-mode)
+          ("C-x C-q" . wgrep-change-to-wgrep-mode)
+          ("C-c C-c" . wgrep-finish-edit)))
+
+;;; ------------------------------------------------------------
+;;; Projectile
+;;; ------------------------------------------------------------
+(use-package projectile
+  :diminish projectile-mode
+  :config (projectile-mode)
+  :bind-keymap
+  ("C-c p" . projectile-command-map)
+  :init
+  (when (file-directory-p "~/source")
+    (setq projectile-project-search-path '("~/source" . 1)))
+  (setq projectile-switch-project-action #'projectile-find-file))
+
+;;; ------------------------------------------------------------
+;;; Company
+;;; ------------------------------------------------------------
+
+;; Company is the best Emacs completion system.
+(use-package company
+  :init
+  (global-company-mode)
+
+  :custom
+  ;; Make Company less intrusive and more like modern IDE autocomplete
+  (company-idle-delay 0.05)        ;; fast popup
+  (company-minimum-prefix-length 1)
+  (company-tooltip-align-annotations t)
+  (company-tooltip-limit 12)
+  (company-tooltip-minimum-width 40)
+  (company-show-numbers t)
+  (company-require-match nil)
+  (company-dabbrev-other-buffers t)
+  (company-dabbrev-downcase nil)
+
+  :bind
+  (:map company-active-map
+        ("<tab>" . company-complete-selection)
+        ("TAB"   . company-complete-selection)
+        ("C-n"   . company-select-next)
+        ("C-p"   . company-select-previous))
+
+  :config
+  (company-tng-mode)
+  ;; Good backends for general programming
+  (setq company-backends
+        '((company-capf            ;; completion-at-point (LSP, modes, etc.)
+           company-dabbrev-code)   ;; fallback for code-like text
+          company-dabbrev))        ;; fallback for everything else
+  )
+
+;; Flycheck is the newer version of flymake and is needed to make lsp-mode not freak out.
+(use-package flycheck
+  :config
+  (add-hook 'prog-mode-hook 'flycheck-mode) ;; always lint my code
+  (add-hook 'after-init-hook #'global-flycheck-mode))
+
+;;; ------------------------------------------------------------
+;;; Lsp
+;;; ------------------------------------------------------------
+
+(use-package lsp-mode
+  :init
+  ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
+  (setq lsp-keymap-prefix "C-c l")
+  :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
+         (csharp-mode . lsp)
+         ;; if you want which-key integration
+         (lsp-mode . lsp-enable-which-key-integration))
+  :commands lsp)
+
+(setq fast-read-process-output (* 1024 1024))
 (use-package lsp-ui :commands lsp-ui-mode)
 (use-package which-key :config (which-key-mode))
 
@@ -161,15 +288,13 @@
   (define-key projectile-mode-map (kbd "C-c p g") #'magit-status))
 
 (add-hook 'git-commit-setup-hook #'git-commit-turn-on-flyspell) ;; if using flyspell
-(add-hook 'git-commit-mode-hook #'turn-on-auto-fill)
+;; (add-hook 'git-commit-mode-hook #'turn-on-auto-fill)
 
 (use-package forge
   :after magit)
 
 (global-set-key (kbd "C-x M-g") #'magit-dispatch) ;; access all magit commands
 (global-set-key (kbd "C-c M-g") #'magit-file-dispatch) ;; file-based git menu
-
-
 
 ;;; ------------------------------------------------------------
 ;;; Org-Mode setup
@@ -184,35 +309,7 @@
 
 (use-package org
   :hook (org-mode . dw/org-mode-setup)
-  :config
-  (setq org-ellipsis " ▾"
-        org-hide-emphasis-markers t))
-
-;; Replace list hyphen with dot
-(font-lock-add-keywords 'org-mode
-                        '(("^ *\\([-]\\) "
-                          (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
-
-(dolist (face '((org-level-1 . 1.2)
-                (org-level-2 . 1.1)
-                (org-level-3 . 1.05)
-                (org-level-4 . 1.0)
-                (org-level-5 . 1.1)
-                (org-level-6 . 1.1)
-                (org-level-7 . 1.1)
-                (org-level-8 . 1.1))))
-
-;; Make sure org-indent face is available
-(require 'org-indent)
-
-;; Ensure that anything that should be fixed-pitch in Org files appears that way
-(set-face-attribute 'org-block nil :foreground nil :inherit 'fixed-pitch)
-(set-face-attribute 'org-code nil   :inherit '(shadow fixed-pitch))
-(set-face-attribute 'org-indent nil :inherit '(org-hide fixed-pitch))
-(set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
-(set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
-(set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
-(set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch)
+  )
 
 ;;; ------------------------------------------------------------
 ;;; Misc packages

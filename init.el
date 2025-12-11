@@ -9,6 +9,10 @@
 (set-keyboard-coding-system 'utf-8)
 (set-selection-coding-system 'utf-8)
 (setq-default default-buffer-file-coding-system 'utf-8)
+
+;; Performance: Increase garbage collection threshold to 50MB
+;; This reduces GC frequency during startup, significantly improving load time
+;; Default is ~800KB which causes frequent GC pauses
 (setq gc-cons-threshold (* 50 1000 1000))
 
 (setq inhibit-startup-message t
@@ -52,11 +56,15 @@
 ;;; OS Settings
 ;;; ------------------------------------------------------------
 (defconst *is-a-linux* (eq system-type 'gnu/linux))
+(defconst *is-a-windoof* (eq system-type 'windows-nt))
 
 (when *is-a-linux*
   (setq-default x-super-keysym 'meta))
 
 (add-to-list 'default-frame-alist '(fullscreen . maximized))
+
+;; Unbind annoying suspend frame keybinding
+(global-unset-key (kbd "C-x C-z"))
 
 ;;; ------------------------------------------------------------
 ;;; Theme
@@ -77,12 +85,19 @@
   (when (memq window-system '(mac ns x))
     (exec-path-from-shell-initialize)))
 
-;; The `vertico' package applies a vertical layout to the minibuffer.
-;; It also pops up the minibuffer eagerly so we can see the available
-;; options without further interactions.  This package is very fast
-;; and "just works", though it also is highly customisable in case we
-;; need to modify its behaviour.
-;;
+;;; ------------------------------------------------------------
+;;; Completion UI (Vertico + Consult + Orderless + Marginalia)
+;;; ------------------------------------------------------------
+
+;; This section configures a modern completion system using:
+;; - Vertico: Vertical completion interface
+;; - Orderless: Flexible matching (space-separated patterns)
+;; - Marginalia: Rich annotations in completion candidates
+;; - Consult: Enhanced search and navigation commands
+;; - Embark: Context actions on completion candidates
+
+;; Vertico: Fast, minimal vertical completion UI
+;; Preferred over ivy/helm for simplicity and performance
 ;; Further reading: https://protesilaos.com/emacs/dotemacs#h:cff33514-d3ac-4c16-a889-ea39d7346dc5
 (use-package vertico
   :config
@@ -208,10 +223,14 @@
   (setq projectile-switch-project-action #'projectile-find-file))
 
 ;;; ------------------------------------------------------------
-;;; Company
+;;; Company (Completion)
 ;;; ------------------------------------------------------------
 
-;; Company is the best Emacs completion system.
+;; Company: Modern completion framework
+;; Chosen over alternatives (corfu, auto-complete) for:
+;; - Mature, well-tested codebase
+;; - Excellent backend support (LSP, dabbrev, files, etc.)
+;; - Works seamlessly with LSP mode
 (use-package company
   :init
   (global-company-mode)
@@ -244,7 +263,11 @@
           company-dabbrev))        ;; fallback for everything else
   )
 
-;; Flycheck is the newer version of flymake and is needed to make lsp-mode not freak out.
+;; Flycheck: Modern syntax checking
+;; Preferred over built-in flymake for:
+;; - Better LSP integration
+;; - More checker support (eslint, pylint, etc.)
+;; - Cleaner error reporting
 (use-package flycheck
   :config
   (add-hook 'prog-mode-hook 'flycheck-mode) ;; always lint my code
@@ -268,7 +291,11 @@
   (setq-default lsp-headerline-breadcrumb-enable nil)
   (setq-default lsp-use-plists t))
 
-(setq fast-read-process-output (* 1024 1024))
+;; Performance: Increase process output buffer to 1MB
+;; LSP servers send large JSON responses; default 4KB buffer causes slowdowns
+;; This improves responsiveness when using language servers
+(setq read-process-output-max (* 1024 1024))
+
 (use-package lsp-ui :commands lsp-ui-mode)
 (use-package which-key :config (which-key-mode))
 
@@ -302,28 +329,33 @@
 (with-eval-after-load 'projectile
   (define-key projectile-mode-map (kbd "C-c p g") #'magit-status))
 
-(add-hook 'git-commit-setup-hook #'git-commit-turn-on-flyspell) ;; if using flyspell
-;; (add-hook 'git-commit-mode-hook #'turn-on-auto-fill)
+;; Git commit enhancements
+;; Note: Use git-commit-setup-hook (not git-commit-mode-hook which is aliased)
+(add-hook 'git-commit-setup-hook #'git-commit-turn-on-flyspell)  ;; spell check commit messages
+(add-hook 'git-commit-setup-hook #'turn-on-auto-fill)             ;; wrap long lines
 
+;; Forge: GitHub/GitLab integration for Magit
+;; Enables working with PRs, issues, and code reviews from within Emacs
 (use-package forge
   :after magit)
 
-(global-set-key (kbd "C-x M-g") #'magit-dispatch) ;; access all magit commands
-(global-set-key (kbd "C-c M-g") #'magit-file-dispatch) ;; file-based git menu
+;; Magit keybindings:
+;; C-x g     - magit-status (main interface)
+;; C-x M-g   - magit-dispatch (all magit commands)
+;; C-c M-g   - magit-file-dispatch (file-specific git operations)
+(global-set-key (kbd "C-x M-g") #'magit-dispatch)
+(global-set-key (kbd "C-c M-g") #'magit-file-dispatch)
 
 ;;; ------------------------------------------------------------
 ;;; Org-Mode setup
 ;;; ------------------------------------------------------------
-
-(defun dw/org-mode-setup ()
-  (org-indent-mode)
-  (variable-pitch-mode 1)
-  (auto-fill-mode 0)
-  (visual-line-mode 1)
-  (setq evil-auto-indent nil))
-
-(use-package org
-  :hook (org-mode . dw/org-mode-setup))
+;; Org-mode configuration is split into a separate file for better organization.
+;; See org-config.el for the complete org-mode setup including:
+;; - Custom agenda views (dashboard, sprint, backlog, etc.)
+;; - Capture templates for tasks, user stories, meetings
+;; - Time tracking and effort estimation
+;; - Azure DevOps integration
+(load (expand-file-name "org-config.el" user-emacs-directory))
 
 ;;; ------------------------------------------------------------
 ;;; Misc packages
@@ -366,40 +398,55 @@
   (setq pulsar-region-face 'pulsar-yellow)
   (setq pulsar-highlight-face 'pulsar-magenta))
 
-(editorconfig-mode t)
+;; EditorConfig: Respect .editorconfig files for consistent coding styles
+;; Automatically applies indent style, tab width, line endings, etc.
+;; from .editorconfig files in project roots
+(use-package editorconfig
+  :config
+  (editorconfig-mode t))
 
 ;;; ------------------------------------------------------------
 ;;; WoMan - Man page browser
 ;;; ------------------------------------------------------------
-(use-package woman
-  :straight (:type built-in)
-  :bind (("C-c m" . woman))
-  :init
-  ;; Dynamically build man page paths by checking which directories exist
-  (setq woman-manpath
-        (seq-filter #'file-directory-p
-                    '("C:/msys64/usr/share/man"
-                      "C:/msys64/mingw64/share/man"
-                      "C:/msys64/mingw32/share/man")))
-  :custom
-  ;; Cache man pages for faster access (important with large man page collections)
-  (woman-cache-filename (expand-file-name "woman-cache.el" user-emacs-directory))
-  ;; Don't ask which topic when there's only one match
-  (woman-use-topic-at-point t)
-  ;; Fill column for better readability
-  (woman-fill-column 80)
-  ;; Use own frame or window
-  (woman-use-own-frame nil)
-  :config
-  ;; Build cache on first run - can take a moment but speeds up future lookups
-  (unless (file-exists-p woman-cache-filename)
-    (woman-file-name "")))
+
+(when '*is-a-windoof*
+  (use-package woman
+    :straight (:type built-in)
+    :bind (("C-c m" . woman))
+    :init
+    ;; Dynamically build man page paths by checking which directories exist
+    (setq woman-manpath
+          (seq-filter #'file-directory-p
+                      '("C:/msys64/usr/share/man"
+                        "C:/msys64/mingw64/share/man"
+                        "C:/msys64/mingw32/share/man")))
+    :custom
+    ;; Cache man pages for faster access (important with large man page collections)
+    (woman-cache-filename (expand-file-name "woman-cache.el" user-emacs-directory))
+    ;; Don't ask which topic when there's only one match
+    (woman-use-topic-at-point t)
+    ;; Fill column for better readability
+    (woman-fill-column 80)
+    ;; Use own frame or window
+    (woman-use-own-frame nil)
+    :config
+    ;; Build cache on first run - can take a moment but speeds up future lookups
+    (unless (file-exists-p woman-cache-filename)
+      (woman-file-name ""))))
 
 ;;; ------------------------------------------------------------
 ;;; Custom settings file
 ;;; ------------------------------------------------------------
 (setq custom-file (locate-user-emacs-file "custom-vars.el"))
 (load custom-file 'noerror 'nomessage)
+
+(setq next-line-add-newlines t)
+
+(let ((autosave-dir (expand-file-name "autosave/" user-emacs-directory)))
+  (setq auto-save-list-file-prefix autosave-dir)
+  (setq auto-save-file-name-transforms
+        `((".*" ,autosave-dir t)))
+  )
 
 (provide 'init)
 ;;; init.el ends here

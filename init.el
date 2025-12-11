@@ -51,13 +51,7 @@
 ;;; ------------------------------------------------------------
 ;;; OS Settings
 ;;; ------------------------------------------------------------
-(defconst *is-a-mac*   (eq system-type 'darwin))
 (defconst *is-a-linux* (eq system-type 'gnu/linux))
-
-(when *is-a-mac*
-  (setq-default mac-command-modifier 'meta
-                mac-option-modifier  'none
-                default-input-method "MacOSX"))
 
 (when *is-a-linux*
   (setq-default x-super-keysym 'meta))

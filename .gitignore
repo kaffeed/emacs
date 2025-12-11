@@ -30,3 +30,4 @@ forge-database.sqlite
 /woman-cache.el
 /org-clock-save.el
 /autosave/
+/eln-cache/

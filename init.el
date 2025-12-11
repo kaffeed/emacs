@@ -57,6 +57,7 @@
 ;;; ------------------------------------------------------------
 (defconst *is-a-mac*   (eq system-type 'darwin))
 (defconst *is-a-linux* (eq system-type 'gnu/linux))
+(defconst *is-a-windoof* (eq system-type 'windows-nt))
 
 (when *is-a-mac*
   (setq-default mac-command-modifier 'meta
@@ -335,8 +336,9 @@
   (define-key projectile-mode-map (kbd "C-c p g") #'magit-status))
 
 ;; Git commit enhancements
+;; Note: Use git-commit-setup-hook (not git-commit-mode-hook which is aliased)
 (add-hook 'git-commit-setup-hook #'git-commit-turn-on-flyspell)  ;; spell check commit messages
-(add-hook 'git-commit-mode-hook #'turn-on-auto-fill)              ;; wrap long lines
+(add-hook 'git-commit-setup-hook #'turn-on-auto-fill)             ;; wrap long lines
 
 ;; Forge: GitHub/GitLab integration for Magit
 ;; Enables working with PRs, issues, and code reviews from within Emacs
@@ -412,29 +414,31 @@
 ;;; ------------------------------------------------------------
 ;;; WoMan - Man page browser
 ;;; ------------------------------------------------------------
-(use-package woman
-  :straight (:type built-in)
-  :bind (("C-c m" . woman))
-  :init
-  ;; Dynamically build man page paths by checking which directories exist
-  (setq woman-manpath
-        (seq-filter #'file-directory-p
-                    '("C:/msys64/usr/share/man"
-                      "C:/msys64/mingw64/share/man"
-                      "C:/msys64/mingw32/share/man")))
-  :custom
-  ;; Cache man pages for faster access (important with large man page collections)
-  (woman-cache-filename (expand-file-name "woman-cache.el" user-emacs-directory))
-  ;; Don't ask which topic when there's only one match
-  (woman-use-topic-at-point t)
-  ;; Fill column for better readability
-  (woman-fill-column 80)
-  ;; Use own frame or window
-  (woman-use-own-frame nil)
-  :config
-  ;; Build cache on first run - can take a moment but speeds up future lookups
-  (unless (file-exists-p woman-cache-filename)
-    (woman-file-name "")))
+
+(when '*is-a-windoof*
+  (use-package woman
+    :straight (:type built-in)
+    :bind (("C-c m" . woman))
+    :init
+    ;; Dynamically build man page paths by checking which directories exist
+    (setq woman-manpath
+          (seq-filter #'file-directory-p
+                      '("C:/msys64/usr/share/man"
+                        "C:/msys64/mingw64/share/man"
+                        "C:/msys64/mingw32/share/man")))
+    :custom
+    ;; Cache man pages for faster access (important with large man page collections)
+    (woman-cache-filename (expand-file-name "woman-cache.el" user-emacs-directory))
+    ;; Don't ask which topic when there's only one match
+    (woman-use-topic-at-point t)
+    ;; Fill column for better readability
+    (woman-fill-column 80)
+    ;; Use own frame or window
+    (woman-use-own-frame nil)
+    :config
+    ;; Build cache on first run - can take a moment but speeds up future lookups
+    (unless (file-exists-p woman-cache-filename)
+      (woman-file-name ""))))
 
 ;;; ------------------------------------------------------------
 ;;; Custom settings file

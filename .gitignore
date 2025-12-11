@@ -28,3 +28,4 @@ forge-database.sqlite
 /history
 /.lsp-session-v1
 /woman-cache.el
+/org-clock-save.el

@@ -325,8 +325,7 @@
   (org-indent-mode)
   (variable-pitch-mode 1)
   (auto-fill-mode 0)
-  (visual-line-mode 1)
-  (setq evil-auto-indent nil))
+  (visual-line-mode 1))
 
 (use-package org
   :hook (org-mode . dw/org-mode-setup))
@@ -406,6 +405,14 @@
 ;;; ------------------------------------------------------------
 (setq custom-file (locate-user-emacs-file "custom-vars.el"))
 (load custom-file 'noerror 'nomessage)
+
+(setq next-line-add-newlines t)
+
+(let ((autosave-dir (expand-file-name "autosave/" user-emacs-directory)))
+  (setq auto-save-list-file-prefix autosave-dir)
+  (setq auto-save-file-name-transforms
+        `((".*" ,autosave-dir t)))
+  )
 
 (provide 'init)
 ;;; init.el ends here

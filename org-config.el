@@ -50,10 +50,19 @@ Enables:
 
 Disables:
 - auto-fill-mode: Prevents hard wrapping which conflicts with visual-line-mode"
-  (org-indent-mode)
+  ;; (org-indent-mode)
   (variable-pitch-mode 1)
   (auto-fill-mode 0)
   (visual-line-mode 1))
+
+(defun ss/org-journal-find-location ()
+  "Find or create journal entry for today's date.
+Designed for org-capture integration with non-daily journal files.
+Narrows to current date's subtree to prevent accidental modifications."
+  (org-journal-new-entry t)
+  (unless (eq org-journal-file-type 'daily)
+    (org-narrow-to-subtree))
+  (goto-char (point-max)))
 
 ;;; ------------------------------------------------------------
 ;;; Org-Mode Package Configuration
@@ -531,15 +540,24 @@ Disables:
           ;; JOURNAL
           ;; ========================================
           ("j" "Journal Entries")
-          ("jj" "Journal" entry
-           (file+olp+datetree "~/org/journal.org")
-           "\n* %<%H:%M> - %? :journal:\n:PROPERTIES:\n:CREATED: %U\n:END:\n"
+          ("jj" "Journal" plain
+           (function ss/org-journal-find-location)
+           "** %(format-time-string \"%H:%M\") - %? :journal:\n"
            :clock-in :clock-resume
            :empty-lines 1)
-          ("jm" "Meeting Notes" entry
-           (file+olp+datetree "~/org/journal.org")
-           "\n* %<%H:%M> - Meeting: %^{Meeting Title} :meeting:\n:PROPERTIES:\n:CREATED: %U\n:ATTENDEES: %^{Attendees}\n:END:\n** Agenda\n%?\n\n** Notes\n\n** Action Items\n- [ ] \n"
+          ("jm" "Meeting Notes" plain
+           (function ss/org-journal-find-location)
+           "** %(format-time-string \"%H:%M\") - Meeting: %^{Meeting Title} :meeting:\n:PROPERTIES:\n:ATTENDEES: %^{Attendees}\n:END:\n*** Agenda\n%?\n\n*** Notes\n\n*** Action Items\n- [ ] \n"
            :clock-in :clock-resume
+           :empty-lines 1)
+          ("jw" "Work Log" plain
+           (function ss/org-journal-find-location)
+           "** %(format-time-string \"%H:%M\") - %? :worklog:\n"
+           :clock-in :clock-resume
+           :empty-lines 1)
+          ("jq" "Quick Thought" plain
+           (function ss/org-journal-find-location)
+           "** %(format-time-string \"%H:%M\") - %? :thought:\n"
            :empty-lines 1)
 
           ;; ========================================
@@ -559,14 +577,16 @@ Disables:
 ;;; ------------------------------------------------------------
 
 (use-package org-journal
+  :ensure t
   :after org
   :bind ("C-c j" . org-journal-new-entry)
   :custom
   (org-journal-dir "~/org/")
-  (org-journal-file-type 'yearly)
-  (org-journal-file-format "journal.org")
+  (org-journal-file-type 'monthly)
+  (org-journal-file-format "%Y-%m.org")
   (org-journal-date-format "%A, %d %B %Y")
-  (org-journal-enable-agenda-integration t))
+  (org-journal-enable-agenda-integration t)
+  (org-journal-hide-entries-p nil))
 
 (provide 'org-config)
 ;;; org-config.el ends here

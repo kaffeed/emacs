@@ -52,6 +52,10 @@
 (setq-default straight-use-package-by-default t
               use-package-verbose t)
 
+;; Install Org mode early to prevent version mismatch
+;; This must come before loading org-config.el
+(straight-use-package 'org)
+
 (use-package compile-angel
   :demand t
   :config

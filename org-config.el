@@ -65,7 +65,7 @@ Disables:
          ("C-c a" . org-agenda)
          ("C-c n" . org-capture)
          ("C-c l" . org-store-link)
-         ("C-c j" . org-journal-new-entry)
+         ;;("C-c j" . org-journal-new-entry)
 
          ;; Org-mode specific shortcuts
          :map org-mode-map

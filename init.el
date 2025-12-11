@@ -77,6 +77,18 @@
   (compile-angel-on-load-mode 1))
 
 ;;; ------------------------------------------------------------
+;;; Org-Mode setup
+;;; ------------------------------------------------------------
+;; Org-mode configuration is split into a separate file for better organization.
+;; See org-config.el for the complete org-mode setup including:
+;; - Custom agenda views (dashboard, sprint, backlog, etc.)
+;; - Capture templates for tasks, user stories, meetings
+;; - Time tracking and effort estimation
+;; - Azure DevOps integration
+(load (expand-file-name "org-config.el" user-emacs-directory))
+
+
+;;; ------------------------------------------------------------
 ;;; OS Settings
 ;;; ------------------------------------------------------------
 (defconst *is-a-linux* (eq system-type 'gnu/linux))
@@ -97,9 +109,22 @@
   :straight (:type git :host github :repo "rougier/nano-emacs")
   ;; :custom
   :config
-  (require 'nano)
+  (require 'nano-layout)
+  (require 'nano-colors)
   (require 'nano-faces)
-  (require 'nano-theme))
+  (require 'nano-modeline)
+  (require 'nano-help)
+
+  ;; writer-mode is basically org-mode that improves org-mode visual
+  (require 'nano-writer)
+  (add-to-list 'major-mode-remap-alist '(org-mode . writer-mode))
+  (require 'nano-theme)
+  (setq nano-font-size 18) ;; You need to set font size before loading NANO theme
+  (nano-toggle-theme)
+  ;; the bold face is set to medium, but on Windows 
+  ;; it looks like regular weight, so just set the weight to bold
+  ;; to properly show bold text in org-mode
+  (set-face-attribute 'nano-face-strong nil :weight 'bold))
 
 ;;; ------------------------------------------------------------
 ;;; Environment Variables (important for macOS)
@@ -369,17 +394,6 @@
 ;; C-c M-g   - magit-file-dispatch (file-specific git operations)
 (global-set-key (kbd "C-x M-g") #'magit-dispatch)
 (global-set-key (kbd "C-c M-g") #'magit-file-dispatch)
-
-;;; ------------------------------------------------------------
-;;; Org-Mode setup
-;;; ------------------------------------------------------------
-;; Org-mode configuration is split into a separate file for better organization.
-;; See org-config.el for the complete org-mode setup including:
-;; - Custom agenda views (dashboard, sprint, backlog, etc.)
-;; - Capture templates for tasks, user stories, meetings
-;; - Time tracking and effort estimation
-;; - Azure DevOps integration
-(load (expand-file-name "org-config.el" user-emacs-directory))
 
 ;;; ------------------------------------------------------------
 ;;; Misc packages

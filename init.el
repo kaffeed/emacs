@@ -349,7 +349,11 @@
 ;; This improves responsiveness when using language servers
 (setq read-process-output-max (* 1024 1024))
 
-(use-package lsp-ui :commands lsp-ui-mode)
+(use-package lsp-ui :commands lsp-ui-mode
+  :config
+  (setq lsp-ui-doc-show-with-cursor t)
+  (setq lsp-ui-doc-show-with-mouse nil))
+
 (use-package which-key :config (which-key-mode))
 
 (use-package sharper
@@ -405,6 +409,9 @@
 
 ;; Compile command
 (global-set-key (kbd "C-c c") 'compile)
+
+(global-set-key (kbd "C-c ]") #'next-error)
+(global-set-key (kbd "C-c [") #'previous-error)
 
 (use-package ace-window
   :bind (("M-o" . ace-window))

@@ -126,16 +126,16 @@
   (setq nano-font-size 14) ;; You need to set font size before loading NANO theme
   (nano-toggle-theme)
 
-  (set-face-attribute 'default nil
-                      :family "RobotoMono Nerd Font Mono" :weight 'light :height 140)
-  (set-face-attribute 'bold nil
-                      :family "RobotoMono Nerd Font Mono" :weight 'regular)
-  (set-face-attribute 'italic nil
-                      :family "Victor Mono" :weight 'semilight :slant 'italic)
-  (set-fontset-font t 'unicode
-                    (font-spec :name "Inconsolata Light" :size 16) nil)
-  (set-fontset-font t '(#xe000 . #xffdd)
-                    (font-spec :name "RobotoMono Nerd Font Mono" :size 12) nil)
+(set-face-attribute 'default nil
+                    :family "JetBrainsMono NFM" :weight 'light :height 140)
+(set-face-attribute 'bold nil
+                    :family "JetBrainsMono NFM" :weight 'regular)
+(set-face-attribute 'italic nil
+                    :family "Victor Mono" :weight 'semilight :slant 'italic)
+(set-fontset-font t 'unicode
+    (font-spec :name "Inconsolata Light" :size 16) nil)
+(set-fontset-font t '(#xe000 . #xffdd)
+    (font-spec :name "JetBrainsMono NFM" :size 12) nil)
 
   )
 
@@ -698,7 +698,8 @@
   :commands (magit-status magit-get-current-branch)
   :bind (("C-x g" . magit-status))
   :custom
-  (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
+  (magit-display-buffer-function #'magit-display-buffer-fullcolumn-most-v1)
+  (setq magit-commit-show-diff nil))
 
 (use-package diff-hl
   :hook ((prog-mode . diff-hl-mode)
@@ -930,7 +931,19 @@
   :straight (:type git :host github :repo "alphapapa/ement.el"))
 
 (use-package powershell
-    :ensure t)
+  :ensure t
+  :config
+  ;; Enable ANSI color processing in PowerShell buffers
+  (add-hook 'powershell-mode-hook
+            (lambda ()
+              (ansi-color-for-comint-mode-on)
+              (setq comint-process-echoes t)
+              ;; Ensure nerd font is applied to PowerShell buffer
+              (face-remap-add-relative 'default :family "JetBrainsMono NFM")))
+
+  ;; Apply ANSI colors to output
+  (add-hook 'comint-output-filter-functions
+            'ansi-color-process-output))
 ;;; ------------------------------------------------------------
 ;;; WoMan - Man page browser
 ;;; ------------------------------------------------------------

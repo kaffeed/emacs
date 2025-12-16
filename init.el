@@ -101,14 +101,14 @@
 (when *is-a-linux*
   (setq-default x-super-keysym 'meta))
 
-(add-to-list 'default-frame-alist '(fullscreen . maximized))
-
-;; Unbind annoying suspend frame keybinding
-(global-unset-key (kbd "C-x C-z"))
+;; Unbind annoying suspend frame
+(global-set-key (kbd "C-x C-z") #'undo)
+(global-set-key (kbd "C-z") #'undo)
 
 ;;; ------------------------------------------------------------
 ;;; Theme
 ;;; ------------------------------------------------------------
+
 (use-package nano
   :straight (:type git :host github :repo "rougier/nano-emacs")
   ;; :custom
@@ -123,13 +123,23 @@
   (require 'nano-writer)
   (add-to-list 'major-mode-remap-alist '(org-mode . writer-mode))
   (require 'nano-theme)
-  (setq nano-font-size 18) ;; You need to set font size before loading NANO theme
+  (setq nano-font-size 14) ;; You need to set font size before loading NANO theme
   (nano-toggle-theme)
-  ;; the bold face is set to medium, but on Windows 
-  ;; it looks like regular weight, so just set the weight to bold
-  ;; to properly show bold text in org-mode
-  (set-face-attribute 'nano-face-strong nil :weight 'bold))
 
+  (set-face-attribute 'default nil
+                      :family "RobotoMono Nerd Font Mono" :weight 'light :height 140)
+  (set-face-attribute 'bold nil
+                      :family "RobotoMono Nerd Font Mono" :weight 'regular)
+  (set-face-attribute 'italic nil
+                      :family "Victor Mono" :weight 'semilight :slant 'italic)
+  (set-fontset-font t 'unicode
+                    (font-spec :name "Inconsolata Light" :size 16) nil)
+  (set-fontset-font t '(#xe000 . #xffdd)
+                    (font-spec :name "RobotoMono Nerd Font Mono" :size 12) nil)
+
+  )
+
+(add-to-list 'default-frame-alist '(fullscreen . maximized))
 ;;; ------------------------------------------------------------
 ;;; Environment Variables (important for macOS)
 ;;; ------------------------------------------------------------
@@ -137,6 +147,31 @@
   :init
   (when (memq window-system '(mac ns x))
     (exec-path-from-shell-initialize)))
+
+;;; ------------------------------------------------------------
+;;; Recentf - Track and quickly access recently opened files
+;;; ------------------------------------------------------------
+(use-package recentf
+  :straight (:type built-in)
+  :config
+  (recentf-mode 1)
+  (setq recentf-max-menu-items 50
+        recentf-max-saved-items 50)
+  ;; Auto-save recentf list every 5 minutes
+  (run-at-time nil (* 5 60) 'recentf-save-list)
+  :bind ("C-c r" . recentf-open-files))
+
+;;; ------------------------------------------------------------
+;;; Imenu - Navigate to definitions in current buffer
+;;; ------------------------------------------------------------
+(use-package imenu
+  :straight (:type built-in)
+  :bind ("C-c i" . imenu)
+  :custom
+  (imenu-auto-rescan t))
+
+;; Use consult-imenu for better imenu interface
+(global-set-key (kbd "M-g i") #'consult-imenu)
 
 ;;; ------------------------------------------------------------
 ;;; Completion UI (Vertico + Consult + Orderless + Marginalia)
@@ -273,7 +308,14 @@
   :init
   (when (file-directory-p "~/source")
     (setq projectile-project-search-path '("~/source" . 1)))
-  (setq projectile-switch-project-action #'projectile-find-file))
+  (setq projectile-switch-project-action #'projectile-find-file)
+  :custom
+  ;; Use hybrid indexing: git for git projects, native for others
+  ;; This ensures .gitignore files are properly respected
+  (projectile-indexing-method 'hybrid)
+  (projectile-enable-caching t)
+  ;; Explicitly set git command to exclude files per .gitignore
+  (projectile-git-command "git ls-files -zco --exclude-standard"))
 
 ;;; ------------------------------------------------------------
 ;;; Company (Completion)
@@ -310,10 +352,11 @@
   :config
   (company-tng-mode)
   ;; Good backends for general programming
+  ;; Integrate yasnippet with company for LSP completions
   (setq company-backends
-        '((company-capf            ;; completion-at-point (LSP, modes, etc.)
-           company-dabbrev-code)   ;; fallback for code-like text
-          company-dabbrev))        ;; fallback for everything else
+        '((company-capf :with company-yasnippet) ;; LSP + snippets together
+           company-dabbrev-code                   ;; fallback for code-like text
+          company-dabbrev))                       ;; fallback for everything else
   )
 
 ;; Flycheck: Modern syntax checking
@@ -326,6 +369,33 @@
   (add-hook 'prog-mode-hook 'flycheck-mode) ;; always lint my code
   (add-hook 'after-init-hook #'global-flycheck-mode))
 
+;; Yasnippet: Template system for code snippets
+;; Dramatically improves coding speed with pre-defined templates
+;; for common patterns (class definitions, methods, loops, etc.)
+(use-package yasnippet
+  :config
+  (yas-global-mode 1)
+  :diminish yas-minor-mode)
+
+;; Yasnippet-snippets: Collection of snippets for many languages
+(use-package yasnippet-snippets
+  :after yasnippet)
+
+;;; ------------------------------------------------------------
+;;; Tree-sitter - Modern syntax highlighting and code parsing
+;;; ------------------------------------------------------------
+;; Tree-sitter provides much better syntax highlighting than traditional
+;; regex-based modes by using actual language parsers
+
+(use-package tree-sitter
+  :config
+  (global-tree-sitter-mode)
+  :hook (tree-sitter-after-on-hook . tree-sitter-hl-mode))
+
+;; Tree-sitter language grammars for various programming languages
+(use-package tree-sitter-langs
+  :after tree-sitter)
+
 ;;; ------------------------------------------------------------
 ;;; Lsp
 ;;; ------------------------------------------------------------
@@ -336,6 +406,10 @@
   (setq lsp-keymap-prefix "C-c l")
   :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
          (csharp-mode . lsp-deferred)
+         (go-mode . lsp-deferred)
+         (java-mode . lsp-deferred)
+         (typescript-mode . lsp-deferred)
+         (js-mode . lsp-deferred)
 
          ;; if you want which-key integration
          (lsp-mode . lsp-enable-which-key-integration))
@@ -354,7 +428,262 @@
   (setq lsp-ui-doc-show-with-cursor t)
   (setq lsp-ui-doc-show-with-mouse nil))
 
+(use-package lsp-java
+  :after lsp-mode
+  :config
+  (setq lsp-java-vmargs
+        (list "-noverify"
+              "-Xmx2G"
+              "-XX:+UseG1GC"
+              "-XX:+UseStringDeduplication"))
+  (setq lsp-java-save-actions-organize-imports t)
+  (setq lsp-java-format-enabled t))
+
 (use-package which-key :config (which-key-mode))
+
+;;; ------------------------------------------------------------
+;;; DAP Mode - Debug Adapter Protocol
+;;; ------------------------------------------------------------
+;; DAP Mode provides debugging support for multiple languages using
+;; the Debug Adapter Protocol. This integrates with our existing
+;; LSP setup to provide a complete IDE-like debugging experience.
+;;
+;; Supported languages:
+;; - .NET Core (C#/F#) via netcoredbg
+;; - Go via Delve
+;; - Node.js/Next.js (JavaScript/TypeScript) via vscode-node-debug2
+;; - Java via JDTLS
+;;
+;; Quick start:
+;; 1. Set breakpoints: C-c D b
+;; 2. Start debugging: F10 or C-c D d
+;; 3. Use hydra menu: C-c D h for all debug commands
+
+(use-package dap-mode
+  :after lsp-mode
+  :commands (dap-debug dap-debug-edit-template)
+
+  :init
+  ;; Enable dap-mode and dap-ui-mode when LSP is active
+  (add-hook 'lsp-mode-hook #'dap-mode)
+  (add-hook 'dap-mode-hook #'dap-ui-mode)
+
+  :bind
+  (;; Main debug prefix: C-c D
+   :map dap-mode-map
+   ("C-c D d" . dap-debug)
+   ("C-c D l" . dap-debug-last)
+   ("C-c D e" . dap-debug-edit-template)
+   ("C-c D h" . dap-hydra)
+
+   ;; Breakpoint management
+   ("C-c D b" . dap-breakpoint-toggle)
+   ("C-c D B" . dap-breakpoint-delete-all)
+   ("C-c D c" . dap-breakpoint-condition)
+
+   ;; Session control
+   ("C-c D n" . dap-next)
+   ("C-c D i" . dap-step-in)
+   ("C-c D o" . dap-step-out)
+   ("C-c D r" . dap-continue)
+   ("C-c D Q" . dap-disconnect)
+
+   ;; UI controls
+   ("C-c D u" . dap-ui-repl)
+
+   ;; Quick access
+   ("<f10>" . dap-debug))
+
+  :custom
+  ;; UI Configuration
+  (dap-auto-configure-features
+   '(sessions locals breakpoints expressions controls tooltip))
+  (dap-auto-show-output t)
+
+  :config
+  (dap-ui-mode 1)
+
+  ;; Windows-specific configuration
+  (when *is-a-windoof*
+    (setq dap-utils-extension-path
+          (expand-file-name "dap-extensions" user-emacs-directory))))
+
+(use-package dap-hydra
+  :after dap-mode
+  :straight nil
+  :commands dap-hydra)
+
+;;; .NET Core / C# Debugging
+(use-package dap-netcore
+  :straight nil
+  :after dap-mode
+  :config
+  (require 'dap-netcore)
+
+  (add-hook 'csharp-mode-hook
+            (lambda () (require 'dap-netcore)))
+
+  ;; Console application template
+  (dap-register-debug-template
+   ".NET Core Launch (console)"
+   (list :type "coreclr"
+         :request "launch"
+         :mode "launch"
+         :name ".NET Core Launch"
+         :program "${workspaceFolder}/bin/Debug/net8.0/${workspaceFolderBasename}.dll"
+         :cwd "${workspaceFolder}"
+         :stopAtEntry nil
+         :console "integratedTerminal"))
+
+  ;; Web application template
+  (dap-register-debug-template
+   ".NET Core Launch (web)"
+   (list :type "coreclr"
+         :request "launch"
+         :name ".NET Core Launch (web)"
+         :program "${workspaceFolder}/bin/Debug/net8.0/${workspaceFolderBasename}.dll"
+         :cwd "${workspaceFolder}"
+         :stopAtEntry nil
+         :env (list "ASPNETCORE_ENVIRONMENT" "Development")
+         :console "integratedTerminal"))
+
+  ;; Attach to process
+  (dap-register-debug-template
+   ".NET Core Attach"
+   (list :type "coreclr"
+         :request "attach"
+         :name ".NET Core Attach"
+         :processId "${command:pickProcess}")))
+
+;;; Go Debugging
+(use-package dap-go
+  :straight nil
+  :after dap-mode
+  :config
+  (require 'dap-go)
+
+  (add-hook 'go-mode-hook
+            (lambda () (require 'dap-go)))
+
+  ;; Launch package
+  (dap-register-debug-template
+   "Go Launch Package"
+   (list :type "go"
+         :request "launch"
+         :name "Launch Package"
+         :mode "debug"
+         :program "${workspaceFolder}"
+         :cwd "${workspaceFolder}"))
+
+  ;; Debug test
+  (dap-register-debug-template
+   "Go Test Current Function"
+   (list :type "go"
+         :request "launch"
+         :name "Test Current Function"
+         :mode "test"
+         :program "${workspaceFolder}"
+         :args ["-test.run" "${function}"]
+         :cwd "${workspaceFolder}")))
+
+;;; Node.js / Next.js / TypeScript Debugging
+(use-package dap-node
+  :straight nil
+  :after dap-mode
+  :config
+  (require 'dap-node)
+
+  (add-hook 'typescript-mode-hook
+            (lambda () (require 'dap-node)))
+
+  (add-hook 'js-mode-hook
+            (lambda () (require 'dap-node)))
+
+  ;; Next.js dev server
+  (dap-register-debug-template
+   "Next.js Dev Server"
+   (list :type "node"
+         :request "launch"
+         :name "Next.js Dev"
+         :runtimeExecutable "npm"
+         :runtimeArgs ["run" "dev"]
+         :cwd "${workspaceFolder}"
+         :sourceMaps t
+         :protocol "inspector"
+         :console "integratedTerminal"
+         :serverReadyAction (list :pattern "started server on .+, url: (https?://.+)"
+                                  :uriFormat "%s"
+                                  :action "openExternally")))
+
+  ;; Next.js server-side debugging
+  (dap-register-debug-template
+   "Next.js Server-Side"
+   (list :type "node"
+         :request "launch"
+         :name "Next.js Server-Side"
+         :runtimeExecutable "npm"
+         :runtimeArgs ["run" "dev"]
+         :cwd "${workspaceFolder}"
+         :sourceMaps t
+         :protocol "inspector"
+         :outFiles ["${workspaceFolder}/.next/**/*.js"]
+         :skipFiles ["<node_internals>/**"]
+         :console "integratedTerminal"))
+
+  ;; Jest tests
+  (dap-register-debug-template
+   "Node Jest Tests"
+   (list :type "node"
+         :request "launch"
+         :name "Jest Tests"
+         :program "${workspaceFolder}/node_modules/.bin/jest"
+         :args ["--runInBand" "--no-coverage" "${file}"]
+         :cwd "${workspaceFolder}"
+         :sourceMaps t
+         :protocol "inspector"
+         :console "integratedTerminal")))
+
+;;; Java Debugging
+(use-package dap-java
+  :straight nil
+  :after (dap-mode lsp-java)
+  :config
+  (require 'dap-java)
+
+  (add-hook 'java-mode-hook
+            (lambda () (require 'dap-java)))
+
+  ;; Launch Java application
+  (dap-register-debug-template
+   "Java Launch"
+   (list :type "java"
+         :request "launch"
+         :name "Java Launch"
+         :mainClass "${file}"
+         :projectName "${workspaceFolderBasename}"
+         :args ""
+         :vmArgs "-ea"
+         :console "integratedTerminal"))
+
+  ;; Debug JUnit tests
+  (dap-register-debug-template
+   "Java Test"
+   (list :type "java"
+         :request "launch"
+         :name "Java Test"
+         :mainClass "${file}"
+         :projectName "${workspaceFolderBasename}"
+         :vmArgs "-ea"
+         :console "integratedTerminal")))
+
+;; Helpful: Much better help buffers with examples, source code, and references
+;; Replaces default help commands with more informative versions
+(use-package helpful
+  :bind (("C-h f" . helpful-callable)     ; Describe function
+         ("C-h v" . helpful-variable)     ; Describe variable
+         ("C-h k" . helpful-key)          ; Describe key
+         ("C-h F" . helpful-function)     ; Describe function (only functions)
+         ("C-h C" . helpful-command)))    ; Describe command
 
 (use-package sharper
   :demand t
@@ -376,12 +705,6 @@
          (text-mode . diff-hl-mode)
          (magit-pre-refresh . diff-hl-magit-pre-refresh)
          (magit-post-refresh . diff-hl-magit-post-refresh)))
-
-(use-package git-gutter
-  :hook ((prog-mode . git-gutter-mode)
-         (text-mode . git-gutter-mode))
-  :custom
-  (git-gutter:update-interval 1))
 
 (with-eval-after-load 'projectile
   (define-key projectile-mode-map (kbd "C-c p g") #'magit-status))
@@ -413,10 +736,78 @@
 (global-set-key (kbd "C-c ]") #'next-error)
 (global-set-key (kbd "C-c [") #'previous-error)
 
+;;; ------------------------------------------------------------
+;;; Function Key Bindings (F1-F12)
+;;; ------------------------------------------------------------
+;; Quick access to commonly used commands via function keys
+
+(global-set-key (kbd "<f5>") #'revert-buffer)    ; Refresh current buffer from file
+(global-set-key (kbd "<f6>") #'org-capture)      ; Quick capture
+(global-set-key (kbd "<f7>") #'org-agenda)       ; Open org agenda
+(global-set-key (kbd "<f8>") #'magit-status)     ; Git status
+(global-set-key (kbd "<f9>") #'compile)          ; Compile/build
+(global-set-key (kbd "<f12>") #'eshell)          ; Quick shell access
+
+;;; ------------------------------------------------------------
+;;; Window Management Keybindings
+;;; ------------------------------------------------------------
+;; Navigate between windows with arrow keys
+(global-set-key (kbd "C-x <up>") #'windmove-up)
+(global-set-key (kbd "C-x <down>") #'windmove-down)
+(global-set-key (kbd "C-x <left>") #'windmove-left)
+(global-set-key (kbd "C-x <right>") #'windmove-right)
+
+;; Resize windows
+(global-set-key (kbd "C-x C-<up>") #'enlarge-window)
+(global-set-key (kbd "C-x C-<down>") #'shrink-window)
+(global-set-key (kbd "C-x C-<left>") #'shrink-window-horizontally)
+(global-set-key (kbd "C-x C-<right>") #'enlarge-window-horizontally)
+
+;;; ------------------------------------------------------------
+;;; Buffer Navigation Shortcuts
+;;; ------------------------------------------------------------
+;; Quick buffer switching
+(global-set-key (kbd "C-<tab>") #'next-buffer)
+(global-set-key (kbd "C-S-<tab>") #'previous-buffer)
+
+;; Use consult-buffer instead of default buffer list
+(global-set-key (kbd "C-x C-b") #'consult-buffer)
+
+;;; ------------------------------------------------------------
+;;; Additional Quick Access Bindings
+;;; ------------------------------------------------------------
+(global-set-key (kbd "C-c s") #'consult-ripgrep)         ; Project search
+(global-set-key (kbd "C-c b") #'consult-bookmark)        ; Bookmarks
+(global-set-key (kbd "C-c e") #'eshell)                  ; Shell
+(global-set-key (kbd "C-c t") #'org-todo-list)           ; TODO list
+(global-set-key (kbd "C-c w") #'delete-trailing-whitespace)
+
+(use-package docker)
+
+;;; ------------------------------------------------------------
+;;; Undo-tree - Visual undo/redo with branching history
+;;; ------------------------------------------------------------
+;; Undo-tree makes Emacs' powerful undo system visual and intuitive
+;; Shows undo history as a tree structure you can navigate
+
+(use-package undo-tree
+  :config
+  (global-undo-tree-mode)
+  :bind ("C-x u" . undo-tree-visualize)
+  :diminish undo-tree-mode)
+
 (use-package ace-window
   :bind (("M-o" . ace-window))
   :custom
   (aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l)))
+
+;; Avy: Jump to visible text using character-based decision tree
+;; Essential for quick navigation without mouse or arrow keys
+(use-package avy
+  :bind (("C-:" . avy-goto-char-2)      ; Jump to 2-char combination
+         ("C-'" . avy-goto-line)         ; Jump to line
+         ("M-g f" . avy-goto-line)       ; Alternative line jump
+         ("M-g w" . avy-goto-word-1)))   ; Jump to word
 
 (use-package multiple-cursors
   :bind (("C->" .           mc/mark-next-like-this)
@@ -432,6 +823,27 @@
 
 (use-package expand-region
   :bind ("C-=" . er/expand-region))
+
+;; Smartparens: Intelligent handling of parentheses, quotes, and brackets
+;; Auto-pairs delimiters and provides smart navigation/manipulation commands
+(use-package smartparens
+  :config
+  (require 'smartparens-config)
+  (smartparens-global-mode 1)
+  (show-smartparens-global-mode 1)
+  :diminish smartparens-mode
+  :bind (:map smartparens-mode-map
+              ("C-M-f" . sp-forward-sexp)
+              ("C-M-b" . sp-backward-sexp)
+              ("C-M-n" . sp-next-sexp)
+              ("C-M-p" . sp-previous-sexp)
+              ("C-M-k" . sp-kill-sexp)
+              ("C-M-w" . sp-copy-sexp)))
+
+;; Rainbow-delimiters: Color-code nested parentheses by depth
+;; Essential for Lisp, helpful for all languages with nested structures
+(use-package rainbow-delimiters
+  :hook (prog-mode . rainbow-delimiters-mode))
 
 (use-package pulsar
   :bind
@@ -454,6 +866,71 @@
   :config
   (editorconfig-mode t))
 
+;;; ------------------------------------------------------------
+;;; Window Layout Management
+;;; ------------------------------------------------------------
+
+;; Transpose-frame: Quickly rearrange window layouts
+;; Useful for rotating, flipping, and transposing window arrangements
+(use-package transpose-frame
+  :bind (("C-x 5 t" . transpose-frame)
+         ("C-x 5 f" . flip-frame)
+         ("C-x 5 r" . rotate-frame-clockwise)))
+
+;;; ------------------------------------------------------------
+;;; REST API Testing
+;;; ------------------------------------------------------------
+
+;; Restclient: Test APIs directly in Emacs
+;; Great for backend development and API testing
+(use-package restclient
+  :mode ("\\.http\\'" . restclient-mode))
+
+;; Company backend for restclient
+(use-package company-restclient
+  :after (company restclient)
+  :config
+  (add-to-list 'company-backends 'company-restclient))
+
+;;; ------------------------------------------------------------
+;;; PDF Viewing
+;;; ------------------------------------------------------------
+
+;; PDF-tools: Much better PDF viewing than DocView
+;; Provides smooth scrolling, text search, annotations, and more
+(use-package pdf-tools
+  :mode ("\\.pdf\\'" . pdf-view-mode)
+  :config
+  (pdf-tools-install :no-query))
+
+;;; ------------------------------------------------------------
+;;; Knowledge Management
+;;; ------------------------------------------------------------
+
+;; Org-roam: Zettelkasten note-taking system
+;; Creates a network of interconnected notes for knowledge management
+(use-package org-roam
+  :after org
+  :custom
+  (org-roam-directory "~/org/roam")
+  (org-roam-completion-everywhere t)
+  :bind (("C-c n l" . org-roam-buffer-toggle)
+         ("C-c n f" . org-roam-node-find)
+         ("C-c n i" . org-roam-node-insert)
+         ("C-c n c" . org-roam-capture)
+         ("C-c n g" . org-roam-graph))
+  :config
+  (org-roam-db-autosync-mode))
+
+;;; ------------------------------------------------------------
+;;; Communication & Utilities
+;;; ------------------------------------------------------------
+
+(use-package ement
+  :straight (:type git :host github :repo "alphapapa/ement.el"))
+
+(use-package powershell
+    :ensure t)
 ;;; ------------------------------------------------------------
 ;;; WoMan - Man page browser
 ;;; ------------------------------------------------------------
@@ -484,11 +961,58 @@
       (woman-file-name ""))))
 
 ;;; ------------------------------------------------------------
+;;; Better Default Settings
+;;; ------------------------------------------------------------
+
+;; Backup and version control
+(setq backup-directory-alist
+      `(("." . ,(expand-file-name "backups/" user-emacs-directory))))
+(setq backup-by-copying t
+      delete-old-versions t
+      kept-new-versions 6
+      kept-old-versions 2
+      version-control t)
+
+;; Better scrolling behavior
+(setq scroll-margin 3
+      scroll-conservatively 101
+      scroll-preserve-screen-position t
+      auto-window-vscroll nil)
+
+;; Case-insensitive completion
+(setq read-buffer-completion-ignore-case t
+      read-file-name-completion-ignore-case t
+      completion-ignore-case t)
+
+;; Save cursor position between sessions
+(save-place-mode 1)
+
+;; Highlight current line (optional - can be distracting for some)
+;; Uncomment the next line to enable:
+;; (global-hl-line-mode 1)
+
+;; Better kill ring
+(setq kill-ring-max 200
+      save-interprogram-paste-before-kill t)
+
+;; Single space ends sentence (modern convention)
+(setq sentence-end-double-space nil)
+
+;; Show trailing whitespace in programming modes
+(add-hook 'prog-mode-hook
+          (lambda () (setq show-trailing-whitespace t)))
+
+;; Optional: Auto-cleanup trailing whitespace on save
+;; Uncomment the next line to enable:
+;; (add-hook 'before-save-hook 'delete-trailing-whitespace)
+
+;;; ------------------------------------------------------------
 ;;; Custom settings file
 ;;; ------------------------------------------------------------
 (setq custom-file (locate-user-emacs-file "custom-vars.el"))
 (load custom-file 'noerror 'nomessage)
 
+(setq create-lockfiles nil)
 (setq next-line-add-newlines t)
 
 (let ((autosave-dir (expand-file-name "autosave/" user-emacs-directory)))

@@ -72,7 +72,8 @@ Narrows to current date's subtree to prevent accidental modifications."
   :hook (org-mode . ss/org-mode-visual-setup)
   :bind (;; Global org shortcuts
          ("C-c a" . org-agenda)
-         ("C-c n" . org-capture)
+         ;; Note: org-capture is bound to F6 (see init.el)
+         ;; C-c n prefix is reserved for org-roam
          ("C-c l" . org-store-link)
          ;;("C-c j" . org-journal-new-entry)
 
@@ -571,6 +572,32 @@ Narrows to current date's subtree to prevent accidental modifications."
           ;; ========================================
           ("y" "Someday/Maybe" entry (file "~/org/someday.org")
            "* BACKLOG [#C] %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n" :empty-lines 1))))
+
+;;; ------------------------------------------------------------
+;;; Org-Super-Agenda - Enhanced agenda grouping and organization
+;;; ------------------------------------------------------------
+;; Org-super-agenda provides powerful auto-grouping for agenda views
+;; Makes your extensive custom agenda views even more organized
+
+(use-package org-super-agenda
+  :after org-agenda
+  :config
+  (org-super-agenda-mode))
+
+;;; ------------------------------------------------------------
+;;; Org-Pomodoro - Pomodoro timer integrated with org-mode
+;;; ------------------------------------------------------------
+;; Integrates Pomodoro technique with your existing org-mode time tracking
+;; Perfect for your Agile workflow with sprint planning
+
+(use-package org-pomodoro
+  :after org
+  :bind ("C-c C-x p" . org-pomodoro)
+  :custom
+  (org-pomodoro-length 25)
+  (org-pomodoro-short-break-length 5)
+  (org-pomodoro-long-break-length 15)
+  (org-pomodoro-keep-killed-pomodoro-time t))
 
 ;;; ------------------------------------------------------------
 ;;; Org-Journal Configuration

@@ -560,6 +560,10 @@ Narrows to current date's subtree to prevent accidental modifications."
            (function ss/org-journal-find-location)
            "** %(format-time-string \"%H:%M\") - %? :thought:\n"
            :empty-lines 1)
+          ("jd" "Daily Standup" plain
+           (function ss/org-journal-find-location)
+           "** %(format-time-string \"%H:%M\") - Daily Standup :standup:\n:PROPERTIES:\n:ATTENDEES: %^{Attendees}\n:END:\n*** Yesterday\n- %?\n\n*** Today\n- \n\n*** Blockers\n- \n"
+           :empty-lines 1)
 
           ;; ========================================
           ;; NOTES

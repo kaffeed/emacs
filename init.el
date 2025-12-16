@@ -517,32 +517,36 @@
 (use-package dap-netcore
   :straight nil
   :after dap-mode
+  :demand t  ;; Load immediately after dap-mode
+  :custom
+  ;; Set the download URL explicitly to avoid auto-detection failures
+  ;; Update version number as needed from: https://github.com/Samsung/netcoredbg/releases
+  (dap-netcore-download-url "https://github.com/Samsung/netcoredbg/releases/download/3.1.3-1062/netcoredbg-win64.zip")
   :config
   (require 'dap-netcore)
 
-  (add-hook 'csharp-mode-hook
-            (lambda () (require 'dap-netcore)))
-
-  ;; Console application template
+  ;; Console application template - prompts for DLL file
   (dap-register-debug-template
    ".NET Core Launch (console)"
    (list :type "coreclr"
          :request "launch"
          :mode "launch"
          :name ".NET Core Launch"
-         :program "${workspaceFolder}/bin/Debug/net8.0/${workspaceFolderBasename}.dll"
-         :cwd "${workspaceFolder}"
+         :program (lambda () (read-file-name "Select DLL to debug: " (projectile-project-root) nil t nil
+                                             (lambda (name) (string-match-p "\\.dll$" name))))
+         :cwd (lambda () (projectile-project-root))
          :stopAtEntry nil
          :console "integratedTerminal"))
 
-  ;; Web application template
+  ;; Web application template - prompts for DLL file
   (dap-register-debug-template
    ".NET Core Launch (web)"
    (list :type "coreclr"
          :request "launch"
          :name ".NET Core Launch (web)"
-         :program "${workspaceFolder}/bin/Debug/net8.0/${workspaceFolderBasename}.dll"
-         :cwd "${workspaceFolder}"
+         :program (lambda () (read-file-name "Select DLL to debug: " (projectile-project-root) nil t nil
+                                             (lambda (name) (string-match-p "\\.dll$" name))))
+         :cwd (lambda () (projectile-project-root))
          :stopAtEntry nil
          :env (list "ASPNETCORE_ENVIRONMENT" "Development")
          :console "integratedTerminal"))
@@ -944,6 +948,56 @@
   ;; Apply ANSI colors to output
   (add-hook 'comint-output-filter-functions
             'ansi-color-process-output))
+
+;;; ------------------------------------------------------------
+;;; External Terminal Launcher
+;;; ------------------------------------------------------------
+(defun ss/open-external-terminal ()
+  "Open external terminal in current directory.
+In Dired, opens terminal in the directory being viewed.
+Otherwise, opens in the directory of the current file."
+  (interactive)
+  (let* ((dir (if (eq major-mode 'dired-mode)
+                  default-directory
+                (file-name-directory (or buffer-file-name default-directory))))
+         ;; Convert to Windows path format and remove trailing slash
+         (win-dir (directory-file-name (convert-standard-filename dir))))
+    (cond
+     ;; Windows: Try Windows Terminal first, then PowerShell
+     (*is-a-windoof*
+      (let ((wt-path (or (executable-find "wt.exe")
+                         (executable-find "wt"))))
+        (if wt-path
+            (progn
+              (message "Opening Windows Terminal in: %s" win-dir)
+              ;; Use w32-shell-execute for better Windows GUI app launching
+              (w32-shell-execute "open" wt-path (format "-d \"%s\"" win-dir)))
+          ;; Fallback to PowerShell
+          (progn
+            (message "Windows Terminal not found, using PowerShell in: %s" win-dir)
+            (w32-shell-execute "open" "powershell.exe"
+                               (format "-NoExit -Command \"Set-Location '%s'\"" win-dir))))))
+     ;; Linux: Try common terminals
+     (*is-a-linux*
+      (cond
+       ((executable-find "gnome-terminal")
+        (start-process "external-terminal" nil "gnome-terminal" "--working-directory" dir))
+       ((executable-find "konsole")
+        (start-process "external-terminal" nil "konsole" "--workdir" dir))
+       ((executable-find "xterm")
+        (start-process "external-terminal" nil "xterm" "-e" (format "cd '%s' && bash" dir)))
+       (t (message "No supported terminal found"))))
+     ;; macOS
+     ((eq system-type 'darwin)
+      (start-process "external-terminal" nil "open" "-a" "Terminal" dir)))))
+
+;; Bind to dired-mode
+(with-eval-after-load 'dired
+  (define-key dired-mode-map (kbd "C-c RET") #'ss/open-external-terminal))
+
+;; Global keybinding
+(global-set-key (kbd "C-c RET") #'ss/open-external-terminal)
+
 ;;; ------------------------------------------------------------
 ;;; WoMan - Man page browser
 ;;; ------------------------------------------------------------
@@ -1033,6 +1087,19 @@
   (setq auto-save-file-name-transforms
         `((".*" ,autosave-dir t)))
   )
+
+;; Fix "Attempting to delete the sole visible or iconified frame" error
+;; This prevents frame deletion issues during Emacs shutdown
+(defun ss/safe-kill-emacs ()
+  "Kill Emacs gracefully without frame deletion errors."
+  (interactive)
+  (condition-case nil
+      (save-buffers-kill-terminal)
+    (error
+     (when (yes-or-no-p "Force quit Emacs? ")
+       (kill-emacs)))))
+
+(global-set-key (kbd "C-x C-c") #'ss/safe-kill-emacs)
 
 (provide 'init)
 ;;; init.el ends here

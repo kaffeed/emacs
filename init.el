@@ -164,14 +164,9 @@
 ;;; ------------------------------------------------------------
 ;;; Imenu - Navigate to definitions in current buffer
 ;;; ------------------------------------------------------------
-(use-package imenu
-  :straight (:type built-in)
-  :bind ("C-c i" . imenu)
-  :custom
-  (imenu-auto-rescan t))
 
 ;; Use consult-imenu for better imenu interface
-(global-set-key (kbd "M-g i") #'consult-imenu)
+(global-set-key (kbd "C-c i") #'consult-imenu)
 
 ;;; ------------------------------------------------------------
 ;;; Completion UI (Vertico + Consult + Orderless + Marginalia)
@@ -407,7 +402,6 @@
   :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
          (csharp-mode . lsp-deferred)
          (go-mode . lsp-deferred)
-         (java-mode . lsp-deferred)
          (typescript-mode . lsp-deferred)
          (js-mode . lsp-deferred)
 
@@ -416,7 +410,9 @@
   :commands (lsp lsp-deferred)
   :config
   (setq-default lsp-headerline-breadcrumb-enable nil)
-  (setq-default lsp-use-plists t))
+  (setq-default lsp-use-plists t)
+  ;; Enable imenu integration with LSP
+  (setq lsp-enable-imenu t))
 
 ;; Performance: Increase process output buffer to 1MB
 ;; LSP servers send large JSON responses; default 4KB buffer causes slowdowns
@@ -427,17 +423,6 @@
   :config
   (setq lsp-ui-doc-show-with-cursor t)
   (setq lsp-ui-doc-show-with-mouse nil))
-
-(use-package lsp-java
-  :after lsp-mode
-  :config
-  (setq lsp-java-vmargs
-        (list "-noverify"
-              "-Xmx2G"
-              "-XX:+UseG1GC"
-              "-XX:+UseStringDeduplication"))
-  (setq lsp-java-save-actions-organize-imports t)
-  (setq lsp-java-format-enabled t))
 
 (use-package which-key :config (which-key-mode))
 
@@ -452,7 +437,6 @@
 ;; - .NET Core (C#/F#) via netcoredbg
 ;; - Go via Delve
 ;; - Node.js/Next.js (JavaScript/TypeScript) via vscode-node-debug2
-;; - Java via JDTLS
 ;;
 ;; Quick start:
 ;; 1. Set breakpoints: C-c D b
@@ -647,38 +631,6 @@
          :protocol "inspector"
          :console "integratedTerminal")))
 
-;;; Java Debugging
-(use-package dap-java
-  :straight nil
-  :after (dap-mode lsp-java)
-  :config
-  (require 'dap-java)
-
-  (add-hook 'java-mode-hook
-            (lambda () (require 'dap-java)))
-
-  ;; Launch Java application
-  (dap-register-debug-template
-   "Java Launch"
-   (list :type "java"
-         :request "launch"
-         :name "Java Launch"
-         :mainClass "${file}"
-         :projectName "${workspaceFolderBasename}"
-         :args ""
-         :vmArgs "-ea"
-         :console "integratedTerminal"))
-
-  ;; Debug JUnit tests
-  (dap-register-debug-template
-   "Java Test"
-   (list :type "java"
-         :request "launch"
-         :name "Java Test"
-         :mainClass "${file}"
-         :projectName "${workspaceFolderBasename}"
-         :vmArgs "-ea"
-         :console "integratedTerminal")))
 
 ;; Helpful: Much better help buffers with examples, source code, and references
 ;; Replaces default help commands with more informative versions
@@ -741,6 +693,9 @@
 (global-set-key (kbd "C-c ]") #'next-error)
 (global-set-key (kbd "C-c [") #'previous-error)
 
+(global-set-key (kbd "M-n") #'next-error)
+(global-set-key (kbd "M-p") #'previous-error)
+
 ;;; ------------------------------------------------------------
 ;;; Function Key Bindings (F1-F12)
 ;;; ------------------------------------------------------------
@@ -789,6 +744,10 @@
 
 (use-package docker)
 
+(use-package dockerfile-mode
+  :straight (:type git :host github :repo "spotify/dockerfile-mode")
+  :mode ("Dockerfile\\'" "\\.dockerfile\\'"))
+
 ;;; ------------------------------------------------------------
 ;;; Undo-tree - Visual undo/redo with branching history
 ;;; ------------------------------------------------------------
@@ -832,6 +791,7 @@
 ;; Smartparens: Intelligent handling of parentheses, quotes, and brackets
 ;; Auto-pairs delimiters and provides smart navigation/manipulation commands
 (use-package smartparens
+  :hook (prog-mode text-mode markdown-mode)
   :config
   (require 'smartparens-config)
   (smartparens-global-mode 1)
@@ -999,33 +959,50 @@ Otherwise, opens in the directory of the current file."
 (global-set-key (kbd "C-c RET") #'ss/open-external-terminal)
 
 ;;; ------------------------------------------------------------
-;;; WoMan - Man page browser
+;;; DevDocs - Browse devdocs.io documentation
 ;;; ------------------------------------------------------------
 
-(when '*is-a-windoof*
-  (use-package woman
-    :straight (:type built-in)
-    :bind (("C-c m" . woman))
-    :init
-    ;; Dynamically build man page paths by checking which directories exist
-    (setq woman-manpath
-          (seq-filter #'file-directory-p
-                      '("C:/msys64/usr/share/man"
-                        "C:/msys64/mingw64/share/man"
-                        "C:/msys64/mingw32/share/man")))
-    :custom
-    ;; Cache man pages for faster access (important with large man page collections)
-    (woman-cache-filename (expand-file-name "woman-cache.el" user-emacs-directory))
-    ;; Don't ask which topic when there's only one match
-    (woman-use-topic-at-point t)
-    ;; Fill column for better readability
-    (woman-fill-column 80)
-    ;; Use own frame or window
-    (woman-use-own-frame nil)
-    :config
-    ;; Build cache on first run - can take a moment but speeds up future lookups
-    (unless (file-exists-p woman-cache-filename)
-      (woman-file-name ""))))
+(use-package devdocs
+  :straight (:type git :host github :repo "astoff/devdocs.el")
+  :bind (("C-c m" . devdocs-lookup)
+         ("C-c M" . devdocs-install))
+  :custom
+  ;; Cache directory for downloaded documentation
+  (devdocs-data-dir (expand-file-name "devdocs" user-emacs-directory))
+  :config
+  ;; Automatically install docs for current major mode
+  (add-hook 'python-mode-hook
+            (lambda () (setq-local devdocs-current-docs '("python~3.12"))))
+  (add-hook 'js-mode-hook
+            (lambda () (setq-local devdocs-current-docs '("javascript" "node"))))
+  (add-hook 'typescript-mode-hook
+            (lambda () (setq-local devdocs-current-docs '("typescript" "node"))))
+  (add-hook 'csharp-mode-hook
+            (lambda () (setq-local devdocs-current-docs '("dotnet~8.0"))))
+  (add-hook 'go-mode-hook
+            (lambda () (setq-local devdocs-current-docs '("go"))))
+  (add-hook 'emacs-lisp-mode-hook
+            (lambda () (setq-local devdocs-current-docs '("elisp")))))
+
+;;; ------------------------------------------------------------
+;;; Vim-like Half-Page Scrolling
+;;; ------------------------------------------------------------
+
+(defun ss/scroll-half-page-down ()
+  "Scroll down half a page, like Vim's C-d."
+  (interactive)
+  (let ((half-page (/ (window-body-height) 2)))
+    (scroll-up-command half-page)))
+
+(defun ss/scroll-half-page-up ()
+  "Scroll up half a page, like Vim's C-u."
+  (interactive)
+  (let ((half-page (/ (window-body-height) 2)))
+    (scroll-down-command half-page)))
+
+;; Replace default full-page scrolling with half-page scrolling
+(global-set-key (kbd "C-v") #'ss/scroll-half-page-down)
+(global-set-key (kbd "M-v") #'ss/scroll-half-page-up)
 
 ;;; ------------------------------------------------------------
 ;;; Better Default Settings

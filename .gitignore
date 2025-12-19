@@ -31,3 +31,11 @@ forge-database.sqlite
 /org-clock-save.el
 /autosave/
 /eln-cache/
+/workspace/
+/projects
+/org-roam.db
+/eclipse.jdt.ls/
+/devdocs/
+/.org-id-locations
+/.mc-lists.el
+/.dap-breakpoints

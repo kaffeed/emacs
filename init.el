@@ -186,8 +186,8 @@ Otherwise, opens in the directory of the current file."
   (add-hook 'git-commit-setup-hook #'turn-on-auto-fill)
 
   :bind
-  (("C-x C-z" . undo)
-   ("C-z" . undo)
+  (("C-x C-z" . nil)
+   ("C-z" . nil)
    ("C-v" . ss/scroll-half-page-down)
    ("M-v" . ss/scroll-half-page-up)
    ("C-x C-c" . ss/safe-kill-emacs)
@@ -215,7 +215,10 @@ Otherwise, opens in the directory of the current file."
    ("C-c e" . eshell)
    ("C-c t" . org-todo-list)
    ("C-c w" . delete-trailing-whitespace)
-   ("C-c RET" . ss/open-external-terminal)))
+   ("C-c RET" . ss/open-external-terminal)
+   ("C-c C-b" . ibuffer)
+   ("M-s f" . find-name-dired)
+   ("M-j" . duplicate-dwim)))
 
 ;; Configure use-package to use straight.el by default
 (setq straight-use-package-by-default t
@@ -284,11 +287,6 @@ Otherwise, opens in the directory of the current file."
   ;; Auto-save recentf list every 5 minutes
   (run-at-time nil (* 5 60) 'recentf-save-list)
   :bind ("C-c r" . recentf-open-files))
-
-;;; ------------------------------------------------------------
-;;; Imenu - Navigate to definitions in current buffer
-;;; ------------------------------------------------------------
-
 
 ;;; ------------------------------------------------------------
 ;;; Completion UI (Vertico + Consult + Orderless + Marginalia)

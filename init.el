@@ -1,34 +1,9 @@
-;;; ------------------------------------------------------------  -*- lexical-binding: t; -*-
-;;; Package Setup
+;;; init.el --- Main configuration  -*- lexical-binding: t; -*-
+
+;;; ------------------------------------------------------------
+;;; Core Settings
 ;;; ------------------------------------------------------------
 
-;; Prefer UTF-8 for everything
-(prefer-coding-system 'utf-8)
-(setq locale-coding-system 'utf-8)
-(set-terminal-coding-system 'utf-8)
-(set-keyboard-coding-system 'utf-8)
-(set-selection-coding-system 'utf-8)
-(setq-default default-buffer-file-coding-system 'utf-8)
-
-;; Performance: Increase garbage collection threshold to 50MB
-;; This reduces GC frequency during startup, significantly improving load time
-;; Default is ~800KB which causes frequent GC pauses
-(setq gc-cons-threshold (* 50 1000 1000))
-
-(setq inhibit-startup-message t
-      inhibit-startup-screen t
-      visible-bell t)
-
-(menu-bar-mode -1)
-(tool-bar-mode -1)
-(scroll-bar-mode -1)
-(column-number-mode)
-
-(global-display-line-numbers-mode t)
-(dolist (mode '(org-mode-hook
-		        term-mode-hook
-		        eshell-mode-hook))
-  (add-hook mode (lambda() (display-line-numbers-mode 0))))
 
 (defvar bootstrap-version)
 (let ((bootstrap-file
@@ -48,9 +23,203 @@
 
 (straight-use-package 'use-package)
 
+
+;;; ------------------------------------------------------------
+;;; Emacs Built-in Configuration
+;;; ------------------------------------------------------------
+
+(defconst *is-a-linux* (eq system-type 'gnu/linux))
+(defconst *is-a-windoof* (eq system-type 'windows-nt))
+
+
+(defun ss/scroll-half-page-down ()
+  "Scroll down half a page, like Vim's C-d."
+  (interactive)
+  (let ((half-page (/ (window-body-height) 2)))
+    (scroll-up-command half-page)))
+
+(defun ss/scroll-half-page-up ()
+  "Scroll up half a page, like Vim's C-u."
+  (interactive)
+  (let ((half-page (/ (window-body-height) 2)))
+    (scroll-down-command half-page)))
+
+
+;; This prevents frame deletion issues during Emacs shutdown
+(defun ss/safe-kill-emacs ()
+  "Kill Emacs gracefully without frame deletion errors."
+  (interactive)
+  (condition-case nil
+      (save-buffers-kill-terminal)
+    (error
+     (when (yes-or-no-p "Force quit Emacs? ")
+       (kill-emacs)))))
+
+;;; ------------------------------------------------------------
+(defun ss/open-external-terminal ()
+  "Open external terminal in current directory.
+In Dired, opens terminal in the directory being viewed.
+Otherwise, opens in the directory of the current file."
+  (interactive)
+  (let* ((dir (if (eq major-mode 'dired-mode)
+                  default-directory
+                (file-name-directory (or buffer-file-name default-directory))))
+         ;; Convert to Windows path format and remove trailing slash
+         (win-dir (directory-file-name (convert-standard-filename dir))))
+    (cond
+     ;; Windows: Try Windows Terminal first, then PowerShell
+     (*is-a-windoof*
+      (let ((wt-path (or (executable-find "wt.exe")
+                         (executable-find "wt"))))
+        (if wt-path
+            (progn
+              (message "Opening Windows Terminal in: %s" win-dir)
+              ;; Use w32-shell-execute for better Windows GUI app launching
+              (w32-shell-execute "open" wt-path (format "-d \"%s\"" win-dir)))
+          ;; Fallback to PowerShell
+          (progn
+            (message "Windows Terminal not found, using PowerShell in: %s" win-dir)
+            (w32-shell-execute "open" "powershell.exe"
+                               (format "-NoExit -Command \"Set-Location '%s'\"" win-dir))))))
+     ;; Linux: Try common terminals
+     (*is-a-linux*
+      (cond
+       ((executable-find "gnome-terminal")
+        (start-process "external-terminal" nil "gnome-terminal" "--working-directory" dir))
+       ((executable-find "konsole")
+        (start-process "external-terminal" nil "konsole" "--workdir" dir))
+       ((executable-find "xterm")
+        (start-process "external-terminal" nil "xterm" "-e" (format "cd '%s' && bash" dir)))
+       (t (message "No supported terminal found"))))
+     ;; macOS
+     ((eq system-type 'darwin)
+      (start-process "external-terminal" nil "open" "-a" "Terminal" dir)))))
+
+
+(use-package emacs
+  :init
+  ;; Prefer UTF-8 for everything
+  (prefer-coding-system 'utf-8)
+  (setq locale-coding-system 'utf-8)
+  (set-terminal-coding-system 'utf-8)
+  (set-keyboard-coding-system 'utf-8)
+  (set-selection-coding-system 'utf-8)
+  (setq default-buffer-file-coding-system 'utf-8)
+
+  ;; Performance: raise GC threshold to 50 MB during startup to reduce GC pauses
+  (setq gc-cons-threshold (* 50 1000 1000))
+  (setq read-process-output-max (* 1024 1024))
+
+  (setq inhibit-startup-message t
+        inhibit-startup-screen t
+        visible-bell t)
+
+  (menu-bar-mode -1)
+  (tool-bar-mode -1)
+  (scroll-bar-mode -1)
+  (column-number-mode)
+
+  (global-display-line-numbers-mode t)
+  (dolist (mode '(org-mode-hook
+                  term-mode-hook
+                  eshell-mode-hook))
+    (add-hook mode (lambda () (display-line-numbers-mode 0))))
+
+  (when *is-a-linux*
+    (setq-default x-super-keysym 'meta))
+
+  ;; Start frames maximized
+  (add-to-list 'default-frame-alist '(fullscreen . maximized))
+
+  ;; Default font: Iosevka Nerd Font Mono 14pt
+  (set-face-attribute 'default nil :font "Iosevka NFM" :height 140)
+  (add-to-list 'default-frame-alist '(font . "Iosevka NFM-14"))
+
+  :config
+  ;; Backup and version control
+  (setq backup-directory-alist
+        `(("." . ,(expand-file-name "backups/" user-emacs-directory))))
+  (setq backup-by-copying t
+        delete-old-versions t
+        kept-new-versions 6
+        kept-old-versions 2
+        version-control t)
+
+  ;; Better scrolling behavior
+  (setq scroll-margin 3
+        scroll-conservatively 101
+        scroll-preserve-screen-position t
+        auto-window-vscroll nil)
+
+  ;; Case-insensitive completion
+  (setq read-buffer-completion-ignore-case t
+        read-file-name-completion-ignore-case t
+        completion-ignore-case t)
+
+  ;; Save cursor position between sessions
+  (save-place-mode 1)
+
+  ;; Better kill ring
+  (setq kill-ring-max 200
+        save-interprogram-paste-before-kill t)
+
+  ;; Single space ends sentence (modern convention)
+  (setq sentence-end-double-space nil)
+
+  ;; Show trailing whitespace in programming modes
+  (add-hook 'prog-mode-hook
+            (lambda () (setq show-trailing-whitespace t)))
+
+  (setq custom-file (locate-user-emacs-file "custom-vars.el"))
+  (load custom-file 'noerror 'nomessage)
+
+  (setq create-lockfiles nil)
+  (setq next-line-add-newlines t)
+
+  (let ((autosave-dir (expand-file-name "autosave/" user-emacs-directory)))
+    (setq auto-save-list-file-prefix autosave-dir)
+    (setq auto-save-file-name-transforms
+          `((".*" ,autosave-dir t))))
+
+  ;; Git commit enhancements
+  (add-hook 'git-commit-setup-hook #'git-commit-turn-on-flyspell)
+  (add-hook 'git-commit-setup-hook #'turn-on-auto-fill)
+
+  :bind
+  (("C-x C-z" . undo)
+   ("C-z" . undo)
+   ("C-v" . ss/scroll-half-page-down)
+   ("M-v" . ss/scroll-half-page-up)
+   ("C-x C-c" . ss/safe-kill-emacs)
+   ("C-c c" . compile)
+   ("C-c ]" . next-error)
+   ("C-c [" . previous-error)
+   ("M-n" . next-error)
+   ("M-p" . previous-error)
+   ("<f5>" . revert-buffer)
+   ("<f6>" . org-capture)
+   ("<f7>" . org-agenda)
+   ("<f8>" . magit-status)
+   ("<f9>" . compile)
+   ("<f12>" . eshell)
+   ("C-x <up>" . windmove-up)
+   ("C-x <down>" . windmove-down)
+   ("C-x <left>" . windmove-left)
+   ("C-x <right>" . windmove-right)
+   ("C-x C-<up>" . enlarge-window)
+   ("C-x C-<down>" . shrink-window)
+   ("C-x C-<left>" . shrink-window-horizontally)
+   ("C-x C-<right>" . enlarge-window-horizontally)
+   ("C-<tab>" . next-buffer)
+   ("C-S-<tab>" . previous-buffer)
+   ("C-c e" . eshell)
+   ("C-c t" . org-todo-list)
+   ("C-c w" . delete-trailing-whitespace)
+   ("C-c RET" . ss/open-external-terminal)))
+
 ;; Configure use-package to use straight.el by default
-(setq-default straight-use-package-by-default t
-              use-package-verbose t)
+(setq straight-use-package-by-default t
+      use-package-verbose nil)
 
 ;; Install Org mode early to prevent version mismatch
 ;; This must come before loading org-config.el
@@ -59,25 +228,9 @@
 (use-package compile-angel
   :demand t
   :config
-  ;; Set `compile-angel-verbose' to nil to disable compile-angel messages.
-  ;; (When set to nil, compile-angel won't show which file is being compiled.)
-  (setq compile-angel-verbose t)
-
-  ;; Uncomment the line below to compile automatically when an Elisp file is saved
-  ;; (add-hook 'emacs-lisp-mode-hook #'compile-angel-on-save-local-mode)
-
-  ;; The following directive prevents compile-angel from compiling your init
-  ;; files. If you choose to remove this push to `compile-angel-excluded-files'
-  ;; and compile your pre/post-init files, ensure you understand the
-  ;; implications and thoroughly test your code. For example, if you're using
-  ;; the `use-package' macro, you'll need to explicitly add:
-  ;; (eval-when-compile (require 'use-package))
-  ;; at the top of your init file.
+  (setq compile-angel-verbose nil)
   (push "/init.el" compile-angel-excluded-files)
   (push "/early-init.el" compile-angel-excluded-files)
-
-  ;; A global mode that compiles .el files before they are loaded
-  ;; using `load' or `require'.
   (compile-angel-on-load-mode 1))
 
 ;;; ------------------------------------------------------------
@@ -94,52 +247,23 @@
 
 ;;; ------------------------------------------------------------
 ;;; OS Settings
-;;; ------------------------------------------------------------
-(defconst *is-a-linux* (eq system-type 'gnu/linux))
-(defconst *is-a-windoof* (eq system-type 'windows-nt))
 
-(when *is-a-linux*
-  (setq-default x-super-keysym 'meta))
-
-;; Unbind annoying suspend frame
-(global-set-key (kbd "C-x C-z") #'undo)
-(global-set-key (kbd "C-z") #'undo)
-
-;;; ------------------------------------------------------------
-;;; Theme
-;;; ------------------------------------------------------------
-
-(use-package nano
-  :straight (:type git :host github :repo "rougier/nano-emacs")
-  ;; :custom
+(use-package standard-themes
+  :init
+  (standard-themes-take-over-modus-themes-mode 1)
+  :bind
+  (("C-<f5>" . modus-themes-rotate)
+   ("M-<f5>" . modus-themes-select)
+   ("C-M-<f5>" . modus-themes-load-random))
   :config
-  (require 'nano-layout)
-  (require 'nano-colors)
-  (require 'nano-faces)
-  (require 'nano-modeline)
-  (require 'nano-help)
+  (setq modus-themes-mixed-fonts t)
+  (setq modus-themes-italic-constructs t)
+  (modus-themes-load-theme 'standard-light))
 
-  ;; writer-mode is basically org-mode that improves org-mode visual
-  (require 'nano-writer)
-  (add-to-list 'major-mode-remap-alist '(org-mode . writer-mode))
-  (require 'nano-theme)
-  (setq nano-font-size 14) ;; You need to set font size before loading NANO theme
-  (nano-toggle-theme)
+;;; ------------------------------------------------------------
+;;; Appearance
+;;; ------------------------------------------------------------
 
-(set-face-attribute 'default nil
-                    :family "JetBrainsMono NFM" :weight 'light :height 140)
-(set-face-attribute 'bold nil
-                    :family "JetBrainsMono NFM" :weight 'regular)
-(set-face-attribute 'italic nil
-                    :family "Victor Mono" :weight 'semilight :slant 'italic)
-(set-fontset-font t 'unicode
-    (font-spec :name "Inconsolata Light" :size 16) nil)
-(set-fontset-font t '(#xe000 . #xffdd)
-    (font-spec :name "JetBrainsMono NFM" :size 12) nil)
-
-  )
-
-(add-to-list 'default-frame-alist '(fullscreen . maximized))
 ;;; ------------------------------------------------------------
 ;;; Environment Variables (important for macOS)
 ;;; ------------------------------------------------------------
@@ -165,8 +289,6 @@
 ;;; Imenu - Navigate to definitions in current buffer
 ;;; ------------------------------------------------------------
 
-;; Use consult-imenu for better imenu interface
-(global-set-key (kbd "C-c i") #'consult-imenu)
 
 ;;; ------------------------------------------------------------
 ;;; Completion UI (Vertico + Consult + Orderless + Marginalia)
@@ -184,8 +306,8 @@
 ;; Further reading: https://protesilaos.com/emacs/dotemacs#h:cff33514-d3ac-4c16-a889-ea39d7346dc5
 (use-package vertico
   :config
-  (setq-default vertico-cycle t)
-  (setq-default vertico-resize nil)
+  (setq vertico-cycle t)
+  (setq vertico-resize nil)
   (vertico-mode 1)
   ;; Load vertico-multiform feature before configuring it
   (require 'vertico-multiform)
@@ -239,7 +361,11 @@
          ("M-s M-l" . consult-line)
          ;; Switch to another buffer, or bookmarked file, or recently
          ;; opened file.
-         ("M-s M-b" . consult-buffer)))
+         ("M-s M-b" . consult-buffer)
+         ("C-x C-b" . consult-buffer)
+         ("C-c s" . consult-ripgrep)
+         ("C-c b" . consult-bookmark)
+         ("C-c i" . consult-imenu)))
 
 
 ;; The `embark' package lets you target the thing or context at point
@@ -409,15 +535,10 @@
          (lsp-mode . lsp-enable-which-key-integration))
   :commands (lsp lsp-deferred)
   :config
-  (setq-default lsp-headerline-breadcrumb-enable nil)
-  (setq-default lsp-use-plists t)
-  ;; Enable imenu integration with LSP
-  (setq lsp-enable-imenu t))
+  (setq lsp-headerline-breadcrumb-enable nil)
+  (setq lsp-use-plists t))
 
 ;; Performance: Increase process output buffer to 1MB
-;; LSP servers send large JSON responses; default 4KB buffer causes slowdowns
-;; This improves responsiveness when using language servers
-(setq read-process-output-max (* 1024 1024))
 
 (use-package lsp-ui :commands lsp-ui-mode
   :config
@@ -652,10 +773,12 @@
 
 (use-package magit
   :commands (magit-status magit-get-current-branch)
-  :bind (("C-x g" . magit-status))
+  :bind (("C-x g" . magit-status)
+         ("C-x M-g" . magit-dispatch)
+         ("C-c M-g" . magit-file-dispatch))
   :custom
   (magit-display-buffer-function #'magit-display-buffer-fullcolumn-most-v1)
-  (setq magit-commit-show-diff nil))
+  (magit-commit-show-diff nil))
 
 (use-package diff-hl
   :hook ((prog-mode . diff-hl-mode)
@@ -667,9 +790,6 @@
   (define-key projectile-mode-map (kbd "C-c p g") #'magit-status))
 
 ;; Git commit enhancements
-;; Note: Use git-commit-setup-hook (not git-commit-mode-hook which is aliased)
-(add-hook 'git-commit-setup-hook #'git-commit-turn-on-flyspell)  ;; spell check commit messages
-(add-hook 'git-commit-setup-hook #'turn-on-auto-fill)             ;; wrap long lines
 
 ;; Forge: GitHub/GitLab integration for Magit
 ;; Enables working with PRs, issues, and code reviews from within Emacs
@@ -678,69 +798,15 @@
 
 ;; Magit keybindings:
 ;; C-x g     - magit-status (main interface)
-;; C-x M-g   - magit-dispatch (all magit commands)
-;; C-c M-g   - magit-file-dispatch (file-specific git operations)
-(global-set-key (kbd "C-x M-g") #'magit-dispatch)
-(global-set-key (kbd "C-c M-g") #'magit-file-dispatch)
 
 ;;; ------------------------------------------------------------
 ;;; Misc packages
 ;;; ------------------------------------------------------------
 
-;; Compile command
-(global-set-key (kbd "C-c c") 'compile)
-
-(global-set-key (kbd "C-c ]") #'next-error)
-(global-set-key (kbd "C-c [") #'previous-error)
-
-(global-set-key (kbd "M-n") #'next-error)
-(global-set-key (kbd "M-p") #'previous-error)
+;;; ------------------------------------------------------------
 
 ;;; ------------------------------------------------------------
-;;; Function Key Bindings (F1-F12)
-;;; ------------------------------------------------------------
-;; Quick access to commonly used commands via function keys
 
-(global-set-key (kbd "<f5>") #'revert-buffer)    ; Refresh current buffer from file
-(global-set-key (kbd "<f6>") #'org-capture)      ; Quick capture
-(global-set-key (kbd "<f7>") #'org-agenda)       ; Open org agenda
-(global-set-key (kbd "<f8>") #'magit-status)     ; Git status
-(global-set-key (kbd "<f9>") #'compile)          ; Compile/build
-(global-set-key (kbd "<f12>") #'eshell)          ; Quick shell access
-
-;;; ------------------------------------------------------------
-;;; Window Management Keybindings
-;;; ------------------------------------------------------------
-;; Navigate between windows with arrow keys
-(global-set-key (kbd "C-x <up>") #'windmove-up)
-(global-set-key (kbd "C-x <down>") #'windmove-down)
-(global-set-key (kbd "C-x <left>") #'windmove-left)
-(global-set-key (kbd "C-x <right>") #'windmove-right)
-
-;; Resize windows
-(global-set-key (kbd "C-x C-<up>") #'enlarge-window)
-(global-set-key (kbd "C-x C-<down>") #'shrink-window)
-(global-set-key (kbd "C-x C-<left>") #'shrink-window-horizontally)
-(global-set-key (kbd "C-x C-<right>") #'enlarge-window-horizontally)
-
-;;; ------------------------------------------------------------
-;;; Buffer Navigation Shortcuts
-;;; ------------------------------------------------------------
-;; Quick buffer switching
-(global-set-key (kbd "C-<tab>") #'next-buffer)
-(global-set-key (kbd "C-S-<tab>") #'previous-buffer)
-
-;; Use consult-buffer instead of default buffer list
-(global-set-key (kbd "C-x C-b") #'consult-buffer)
-
-;;; ------------------------------------------------------------
-;;; Additional Quick Access Bindings
-;;; ------------------------------------------------------------
-(global-set-key (kbd "C-c s") #'consult-ripgrep)         ; Project search
-(global-set-key (kbd "C-c b") #'consult-bookmark)        ; Bookmarks
-(global-set-key (kbd "C-c e") #'eshell)                  ; Shell
-(global-set-key (kbd "C-c t") #'org-todo-list)           ; TODO list
-(global-set-key (kbd "C-c w") #'delete-trailing-whitespace)
 
 (use-package docker)
 
@@ -782,7 +848,6 @@
 
 (use-package rg
   :straight (:type git :host github :repo "dajva/rg.el")
-  ;; :custom
   :config (rg-enable-default-bindings))
 
 (use-package expand-region
@@ -895,68 +960,20 @@
   :straight (:type git :host github :repo "alphapapa/ement.el"))
 
 (use-package powershell
-  :ensure t
   :config
-  ;; Enable ANSI color processing in PowerShell buffers
   (add-hook 'powershell-mode-hook
             (lambda ()
               (ansi-color-for-comint-mode-on)
-              (setq comint-process-echoes t)
-              ;; Ensure nerd font is applied to PowerShell buffer
-              (face-remap-add-relative 'default :family "JetBrainsMono NFM")))
-
-  ;; Apply ANSI colors to output
+              (setq comint-process-echoes t)))
   (add-hook 'comint-output-filter-functions
             'ansi-color-process-output))
 
 ;;; ------------------------------------------------------------
-;;; External Terminal Launcher
-;;; ------------------------------------------------------------
-(defun ss/open-external-terminal ()
-  "Open external terminal in current directory.
-In Dired, opens terminal in the directory being viewed.
-Otherwise, opens in the directory of the current file."
-  (interactive)
-  (let* ((dir (if (eq major-mode 'dired-mode)
-                  default-directory
-                (file-name-directory (or buffer-file-name default-directory))))
-         ;; Convert to Windows path format and remove trailing slash
-         (win-dir (directory-file-name (convert-standard-filename dir))))
-    (cond
-     ;; Windows: Try Windows Terminal first, then PowerShell
-     (*is-a-windoof*
-      (let ((wt-path (or (executable-find "wt.exe")
-                         (executable-find "wt"))))
-        (if wt-path
-            (progn
-              (message "Opening Windows Terminal in: %s" win-dir)
-              ;; Use w32-shell-execute for better Windows GUI app launching
-              (w32-shell-execute "open" wt-path (format "-d \"%s\"" win-dir)))
-          ;; Fallback to PowerShell
-          (progn
-            (message "Windows Terminal not found, using PowerShell in: %s" win-dir)
-            (w32-shell-execute "open" "powershell.exe"
-                               (format "-NoExit -Command \"Set-Location '%s'\"" win-dir))))))
-     ;; Linux: Try common terminals
-     (*is-a-linux*
-      (cond
-       ((executable-find "gnome-terminal")
-        (start-process "external-terminal" nil "gnome-terminal" "--working-directory" dir))
-       ((executable-find "konsole")
-        (start-process "external-terminal" nil "konsole" "--workdir" dir))
-       ((executable-find "xterm")
-        (start-process "external-terminal" nil "xterm" "-e" (format "cd '%s' && bash" dir)))
-       (t (message "No supported terminal found"))))
-     ;; macOS
-     ((eq system-type 'darwin)
-      (start-process "external-terminal" nil "open" "-a" "Terminal" dir)))))
 
 ;; Bind to dired-mode
 (with-eval-after-load 'dired
   (define-key dired-mode-map (kbd "C-c RET") #'ss/open-external-terminal))
 
-;; Global keybinding
-(global-set-key (kbd "C-c RET") #'ss/open-external-terminal)
 
 ;;; ------------------------------------------------------------
 ;;; DevDocs - Browse devdocs.io documentation
@@ -984,99 +1001,12 @@ Otherwise, opens in the directory of the current file."
   (add-hook 'emacs-lisp-mode-hook
             (lambda () (setq-local devdocs-current-docs '("elisp")))))
 
-;;; ------------------------------------------------------------
-;;; Vim-like Half-Page Scrolling
-;;; ------------------------------------------------------------
-
-(defun ss/scroll-half-page-down ()
-  "Scroll down half a page, like Vim's C-d."
-  (interactive)
-  (let ((half-page (/ (window-body-height) 2)))
-    (scroll-up-command half-page)))
-
-(defun ss/scroll-half-page-up ()
-  "Scroll up half a page, like Vim's C-u."
-  (interactive)
-  (let ((half-page (/ (window-body-height) 2)))
-    (scroll-down-command half-page)))
-
-;; Replace default full-page scrolling with half-page scrolling
-(global-set-key (kbd "C-v") #'ss/scroll-half-page-down)
-(global-set-key (kbd "M-v") #'ss/scroll-half-page-up)
-
-;;; ------------------------------------------------------------
-;;; Better Default Settings
-;;; ------------------------------------------------------------
-
-;; Backup and version control
-(setq backup-directory-alist
-      `(("." . ,(expand-file-name "backups/" user-emacs-directory))))
-(setq backup-by-copying t
-      delete-old-versions t
-      kept-new-versions 6
-      kept-old-versions 2
-      version-control t)
-
-;; Better scrolling behavior
-(setq scroll-margin 3
-      scroll-conservatively 101
-      scroll-preserve-screen-position t
-      auto-window-vscroll nil)
-
-;; Case-insensitive completion
-(setq read-buffer-completion-ignore-case t
-      read-file-name-completion-ignore-case t
-      completion-ignore-case t)
-
-;; Save cursor position between sessions
-(save-place-mode 1)
-
-;; Highlight current line (optional - can be distracting for some)
-;; Uncomment the next line to enable:
-;; (global-hl-line-mode 1)
-
-;; Better kill ring
-(setq kill-ring-max 200
-      save-interprogram-paste-before-kill t)
-
-;; Single space ends sentence (modern convention)
-(setq sentence-end-double-space nil)
-
-;; Show trailing whitespace in programming modes
-(add-hook 'prog-mode-hook
-          (lambda () (setq show-trailing-whitespace t)))
 
 ;; Optional: Auto-cleanup trailing whitespace on save
 ;; Uncomment the next line to enable:
 ;; (add-hook 'before-save-hook 'delete-trailing-whitespace)
 
-;;; ------------------------------------------------------------
-;;; Custom settings file
-;;; ------------------------------------------------------------
-(setq custom-file (locate-user-emacs-file "custom-vars.el"))
-(load custom-file 'noerror 'nomessage)
 
-(setq create-lockfiles nil)
-(setq next-line-add-newlines t)
-
-(let ((autosave-dir (expand-file-name "autosave/" user-emacs-directory)))
-  (setq auto-save-list-file-prefix autosave-dir)
-  (setq auto-save-file-name-transforms
-        `((".*" ,autosave-dir t)))
-  )
-
-;; Fix "Attempting to delete the sole visible or iconified frame" error
-;; This prevents frame deletion issues during Emacs shutdown
-(defun ss/safe-kill-emacs ()
-  "Kill Emacs gracefully without frame deletion errors."
-  (interactive)
-  (condition-case nil
-      (save-buffers-kill-terminal)
-    (error
-     (when (yes-or-no-p "Force quit Emacs? ")
-       (kill-emacs)))))
-
-(global-set-key (kbd "C-x C-c") #'ss/safe-kill-emacs)
 
 (provide 'init)
 ;;; init.el ends here

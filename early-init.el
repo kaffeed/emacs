@@ -3,12 +3,10 @@
 ;; Ensure Emacs loads the most recent byte-compiled files.
 (setq load-prefer-newer t)
 
-;; Make Emacs Native-compile .elc files asynchronously by setting
-;; `native-comp-jit-compilation' to t.
+;; Enable async native compilation of .elc files to .eln.
 (setq native-comp-jit-compilation t)
-(setq native-comp-deferred-compilation native-comp-jit-compilation)  ; Deprecated
 
-;; Disable package.el to use straight.el instead
+;; Disable package.el to use straight.el instead.
 (setq package-enable-at-startup nil)
 (setenv "LSP_USE_PLISTS" "true")
 

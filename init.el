@@ -106,19 +106,21 @@ Otherwise, opens in the directory of the current file."
   (set-selection-coding-system 'utf-8)
   (setq default-buffer-file-coding-system 'utf-8)
 
-  ;; Performance: raise GC threshold to 50 MB during startup to reduce GC pauses
-  (setq gc-cons-threshold (* 50 1000 1000))
+  ;; Performance: reset GC threshold to a sensible default after startup
+  (add-hook 'after-init-hook
+            (lambda ()
+              (setq gc-cons-threshold (* 100 1024 1024)
+                    gc-cons-percentage 0.1)))
+
   (setq read-process-output-max (* 1024 1024))
 
   (setq inhibit-startup-message t
         inhibit-startup-screen t
         visible-bell t)
 
-  (menu-bar-mode -1)
-  (tool-bar-mode -1)
-  (scroll-bar-mode -1)
   (column-number-mode)
 
+  (setq display-line-numbers-type 'relative)
   (global-display-line-numbers-mode t)
   (dolist (mode '(org-mode-hook
                   term-mode-hook
@@ -159,6 +161,42 @@ Otherwise, opens in the directory of the current file."
   ;; Save cursor position between sessions
   (save-place-mode 1)
 
+  ;; Quick diff preview before saving buffers
+  (add-to-list 'save-some-buffers-action-alist
+               (list "d"
+                     (lambda (buffer) (diff-buffer-with-file (buffer-file-name buffer)))
+                     "show diff between the buffer and its file"))
+
+  ;; Ergonomic Repeated Mark Popping
+  (setq set-mark-command-repeat-pop t)
+
+  ;; Smarter Minibuffer Quitting (C-g)
+  (define-advice keyboard-quit
+      (:around (quit) quit-current-context)
+    "Quit the current context including an active minibuffer from anywhere."
+    (if (active-minibuffer-window)
+        (if (minibufferp)
+            (minibuffer-keyboard-quit)
+          (abort-recursive-edit))
+      (unless (or defining-kbd-macro executing-kbd-macro)
+        (funcall-interactively quit))))
+
+  ;; Inline Elisp Evaluation Overlay (C-x C-e)
+  (defun ss/eval-last-sexp-overlay (arg)
+    "Eval last sexp and show result inline as a fading overlay."
+    (interactive "P")
+    (let ((arrow (if (char-displayable-p ?⇒) " ; ⇒ " " ; => ")))
+      (if arg
+          (let ((value (elisp--eval-last-sexp nil)))
+            (insert arrow (format "%S" value)))
+        (let* ((value (elisp--eval-last-sexp nil))
+               (str (concat arrow (format "%S" value)))
+               (ov (make-overlay (point) (point))))
+          (overlay-put ov 'after-string
+                       (propertize str 'face 'font-lock-comment-face))
+          (run-with-timer 3 nil (lambda (o) (delete-overlay o)) ov)))))
+  (global-set-key (kbd "C-x C-e") #'ss/eval-last-sexp-overlay)
+
   ;; Better kill ring
   (setq kill-ring-max 200
         save-interprogram-paste-before-kill t)
@@ -172,6 +210,27 @@ Otherwise, opens in the directory of the current file."
 
   (setq custom-file (locate-user-emacs-file "custom-vars.el"))
   (load custom-file 'noerror 'nomessage)
+
+  ;; Fast Isearch Copy (M-w)
+  (defun ss/isearch-copy-selected-word ()
+    "Copy the current `isearch` selection to the kill ring."
+    (interactive)
+    (when isearch-other-end
+      (let ((selection (buffer-substring-no-properties isearch-other-end (point))))
+        (kill-new selection)
+        (isearch-exit))))
+  (define-key isearch-mode-map (kbd "M-w") #'ss/isearch-copy-selected-word)
+
+  ;; TRAMP Speed Hack
+  (connection-local-set-profile-variables
+   'remote-direct-async-process
+   '((tramp-direct-async-process . t)))
+  (connection-local-set-profiles
+   '(:application tramp :protocol "scp")
+   'remote-direct-async-process)
+  (with-eval-after-load 'tramp
+    (with-eval-after-load 'compile
+      (remove-hook 'compilation-mode-hook #'tramp-compile-disable-ssh-controlmaster-options)))
 
   (setq create-lockfiles nil)
   (setq next-line-add-newlines t)
@@ -383,7 +442,7 @@ Otherwise, opens in the directory of the current file."
 ;; Further reading: https://protesilaos.com/emacs/dotemacs#h:22e97b4c-d88d-4deb-9ab3-f80631f9ff1d
 (use-package consult
   :bind (;; A recursive grep
-         ("M-s M-g" . consult-grep)
+         ("M-s M-g" . consult-ripgrep)
          ;; Search for files names recursively
          ("M-s M-f" . consult-find)
          ;; Search through the outline (headings) of the file

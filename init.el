@@ -161,6 +161,10 @@ Otherwise, opens in the directory of the current file."
   ;; Save cursor position between sessions
   (save-place-mode 1)
 
+  ;; Auto-revert files when changed on disk
+  (global-auto-revert-mode 1)
+  (setq global-auto-revert-non-file-buffers t)
+
   ;; Quick diff preview before saving buffers
   (add-to-list 'save-some-buffers-action-alist
                (list "d"

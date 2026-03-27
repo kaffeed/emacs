@@ -26,6 +26,8 @@
 (use-package lsp-ui :commands lsp-ui-mode
   :config
   (setq lsp-ui-doc-show-with-cursor t)
+  (setq lsp-ui-doc-enable nil)
+  (setq lsp-ui-sideline-enable nil)
   (setq lsp-ui-doc-show-with-mouse nil))
 
 ;;; ------------------------------------------------------------

@@ -420,17 +420,20 @@
          '(:eval (custom-modeline-flymake-note)))))
   "Mode line construct displaying Flymake diagnostics.")
 
-;;;; Eglot
+;;;; LSP Mode
 
-(with-eval-after-load 'eglot
-  (setq mode-line-misc-info
-        (delete '(eglot--managed-mode (" [" eglot--mode-line-format "] ")) mode-line-misc-info)))
-
-(defvar-local custom-modeline-eglot
+(defvar-local custom-modeline-lsp
     `(:eval
-      (when (and (featurep 'eglot) (mode-line-window-selected-p) eglot--managed-mode)
-        (list " " eglot--mode-line-format " ")))
-  "Mode line construct displaying Eglot information.")
+      (when (and (bound-and-true-p lsp-mode) (mode-line-window-selected-p) (fboundp 'lsp-workspaces))
+        (let ((servers (mapconcat (lambda (w) (symbol-name (lsp--workspace-server-id w))) (lsp-workspaces) "/")))
+          (if (string-empty-p servers)
+              " LSP:? "
+            (list " "
+                  (propertize "LSP" 'face 'custom-modeline-indicator-blue)
+                  ":"
+                  (propertize servers 'face 'custom-modeline-indicator-gray)
+                  " ")))))
+  "Mode line construct displaying LSP information.")
 
 ;;;; Time
 
@@ -463,7 +466,7 @@
                      custom-modeline-process
                      custom-modeline-vc-branch
                      custom-modeline-flymake
-                     custom-modeline-eglot
+                     custom-modeline-lsp
                      custom-modeline-time-aligned
                      custom-modeline-misc-info))
   (put construct 'risky-local-variable t))
@@ -485,7 +488,7 @@
                 custom-modeline-vc-branch
                 "  "
                 custom-modeline-flymake
-                custom-modeline-eglot
+                custom-modeline-lsp
                 "  "
                 custom-modeline-major-mode
                 custom-modeline-process

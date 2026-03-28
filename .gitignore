@@ -39,3 +39,12 @@ forge-database.sqlite
 /.org-id-locations
 /.mc-lists.el
 /.dap-breakpoints
+
+# Compiled tree-sitter grammars
+/tree-sitter/
+
+# Emacs Backup Files
+/backups/
+
+# Undo-tree history files
+*~undo-tree~

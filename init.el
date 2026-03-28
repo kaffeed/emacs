@@ -106,19 +106,21 @@ Otherwise, opens in the directory of the current file."
   (set-selection-coding-system 'utf-8)
   (setq default-buffer-file-coding-system 'utf-8)
 
-  ;; Performance: raise GC threshold to 50 MB during startup to reduce GC pauses
-  (setq gc-cons-threshold (* 50 1000 1000))
+  ;; Performance: reset GC threshold to a sensible default after startup
+  (add-hook 'after-init-hook
+            (lambda ()
+              (setq gc-cons-threshold (* 100 1024 1024)
+                    gc-cons-percentage 0.1)))
+
   (setq read-process-output-max (* 1024 1024))
 
   (setq inhibit-startup-message t
         inhibit-startup-screen t
         visible-bell t)
 
-  (menu-bar-mode -1)
-  (tool-bar-mode -1)
-  (scroll-bar-mode -1)
   (column-number-mode)
 
+  (setq display-line-numbers-type 'relative)
   (global-display-line-numbers-mode t)
   (dolist (mode '(org-mode-hook
                   term-mode-hook
@@ -159,6 +161,46 @@ Otherwise, opens in the directory of the current file."
   ;; Save cursor position between sessions
   (save-place-mode 1)
 
+  ;; Auto-revert files when changed on disk
+  (global-auto-revert-mode 1)
+  (setq global-auto-revert-non-file-buffers t)
+
+  ;; Quick diff preview before saving buffers
+  (add-to-list 'save-some-buffers-action-alist
+               (list "d"
+                     (lambda (buffer) (diff-buffer-with-file (buffer-file-name buffer)))
+                     "show diff between the buffer and its file"))
+
+  ;; Ergonomic Repeated Mark Popping
+  (setq set-mark-command-repeat-pop t)
+
+  ;; Smarter Minibuffer Quitting (C-g)
+  (define-advice keyboard-quit
+      (:around (quit) quit-current-context)
+    "Quit the current context including an active minibuffer from anywhere."
+    (if (active-minibuffer-window)
+        (if (minibufferp)
+            (minibuffer-keyboard-quit)
+          (abort-recursive-edit))
+      (unless (or defining-kbd-macro executing-kbd-macro)
+        (funcall-interactively quit))))
+
+  ;; Inline Elisp Evaluation Overlay (C-x C-e)
+  (defun ss/eval-last-sexp-overlay (arg)
+    "Eval last sexp and show result inline as a fading overlay."
+    (interactive "P")
+    (let ((arrow (if (char-displayable-p ?⇒) " ; ⇒ " " ; => ")))
+      (if arg
+          (let ((value (elisp--eval-last-sexp nil)))
+            (insert arrow (format "%S" value)))
+        (let* ((value (elisp--eval-last-sexp nil))
+               (str (concat arrow (format "%S" value)))
+               (ov (make-overlay (point) (point))))
+          (overlay-put ov 'after-string
+                       (propertize str 'face 'font-lock-comment-face))
+          (run-with-timer 3 nil (lambda (o) (delete-overlay o)) ov)))))
+  (global-set-key (kbd "C-x C-e") #'ss/eval-last-sexp-overlay)
+
   ;; Better kill ring
   (setq kill-ring-max 200
         save-interprogram-paste-before-kill t)
@@ -172,6 +214,27 @@ Otherwise, opens in the directory of the current file."
 
   (setq custom-file (locate-user-emacs-file "custom-vars.el"))
   (load custom-file 'noerror 'nomessage)
+
+  ;; Fast Isearch Copy (M-w)
+  (defun ss/isearch-copy-selected-word ()
+    "Copy the current `isearch` selection to the kill ring."
+    (interactive)
+    (when isearch-other-end
+      (let ((selection (buffer-substring-no-properties isearch-other-end (point))))
+        (kill-new selection)
+        (isearch-exit))))
+  (define-key isearch-mode-map (kbd "M-w") #'ss/isearch-copy-selected-word)
+
+  ;; TRAMP Speed Hack
+  (connection-local-set-profile-variables
+   'remote-direct-async-process
+   '((tramp-direct-async-process . t)))
+  (connection-local-set-profiles
+   '(:application tramp :protocol "scp")
+   'remote-direct-async-process)
+  (with-eval-after-load 'tramp
+    (with-eval-after-load 'compile
+      (remove-hook 'compilation-mode-hook #'tramp-compile-disable-ssh-controlmaster-options)))
 
   (setq create-lockfiles nil)
   (setq next-line-add-newlines t)
@@ -236,6 +299,7 @@ Otherwise, opens in the directory of the current file."
    ("C-c t" . org-todo-list)
    ("C-c w" . delete-trailing-whitespace)
    ("C-c RET" . ss/open-external-terminal)
+   ("C-c C-b" . ibuffer)
    ("M-s f" . find-name-dired)
    ("M-j" . duplicate-dwim)))
 
@@ -273,6 +337,21 @@ Otherwise, opens in the directory of the current file."
 ;;; ------------------------------------------------------------
 ;;; Appearance
 ;;; ------------------------------------------------------------
+(use-package spacious-padding
+  :straight t
+  :custom
+  (spacious-padding-widths
+   '( :internal-border-width 15
+      :header-line-width 4
+      :mode-line-width 6
+      :tab-width 4
+      :right-divider-width 30
+      :scroll-bar-width 8
+      :fringe-width 8))
+  ;; Read the manual for how to specify `spacious-padding-subtle-mode-line'
+  :config
+  (spacious-padding-mode 1))
+
 (use-package ef-themes
   :ensure t
   :init
@@ -297,7 +376,7 @@ Otherwise, opens in the directory of the current file."
   ;; Finally, load your theme of choice (or a random one with
   ;; `modus-themes-load-random', `modus-themes-load-random-dark',
   ;; `modus-themes-load-random-light').
-  (modus-themes-load-theme 'ef-summer))
+  (modus-themes-load-theme 'modus-vivendi-tinted))
 
 ;;; ------------------------------------------------------------
 ;;; Environment Variables (important for macOS)
@@ -382,7 +461,7 @@ Otherwise, opens in the directory of the current file."
 ;; Further reading: https://protesilaos.com/emacs/dotemacs#h:22e97b4c-d88d-4deb-9ab3-f80631f9ff1d
 (use-package consult
   :bind (;; A recursive grep
-         ("M-s M-g" . consult-grep)
+         ("M-s M-g" . consult-ripgrep)
          ;; Search for files names recursively
          ("M-s M-f" . consult-find)
          ;; Search through the outline (headings) of the file
@@ -551,407 +630,9 @@ Otherwise, opens in the directory of the current file."
 ;;; Lsp
 ;;; ------------------------------------------------------------
 
-(use-package lsp-mode
-  :init
-  ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
-  (setq lsp-keymap-prefix "C-c l")
-  :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
-         (csharp-mode . lsp-deferred)
-         (go-mode . lsp-deferred)
-         (typescript-mode . lsp-deferred)
-         (js-mode . lsp-deferred)
-
-         ;; if you want which-key integration
-         (lsp-mode . lsp-enable-which-key-integration))
-  :commands (lsp lsp-deferred)
-  :config
-  (setq lsp-headerline-breadcrumb-enable nil)
-  (setq lsp-use-plists t))
-
-;; Performance: Increase process output buffer to 1MB
-
-(use-package lsp-ui :commands lsp-ui-mode
-  :config
-  (setq lsp-ui-doc-show-with-cursor t)
-  (setq lsp-ui-doc-show-with-mouse nil))
+(load (expand-file-name "lsp-config.el" user-emacs-directory))
 
 (use-package which-key :config (which-key-mode))
-
-;;; ------------------------------------------------------------
-;;; DAP Mode - Debug Adapter Protocol
-;;; ------------------------------------------------------------
-;; DAP Mode provides debugging support for multiple languages using
-;; the Debug Adapter Protocol. This integrates with our existing
-;; LSP setup to provide a complete IDE-like debugging experience.
-;;
-;; Supported languages:
-;; - .NET Core (C#/F#) via netcoredbg
-;; - Go via Delve
-;; - Node.js/Next.js (JavaScript/TypeScript) via vscode-node-debug2
-;;
-;; Quick start:
-;; 1. Set breakpoints: C-c D b
-;; 2. Start debugging: F10 or C-c D d
-;; 3. Use hydra menu: C-c D h for all debug commands
-
-(use-package dap-mode
-  :after lsp-mode
-  :commands (dap-debug dap-debug-edit-template)
-
-  :init
-  ;; Enable dap-mode and dap-ui-mode when LSP is active
-  (add-hook 'lsp-mode-hook #'dap-mode)
-  (add-hook 'dap-mode-hook #'dap-ui-mode)
-
-  :bind
-  (;; Main debug prefix: C-c D
-   :map dap-mode-map
-   ("C-c D d" . dap-debug)
-   ("C-c D l" . dap-debug-last)
-   ("C-c D e" . dap-debug-edit-template)
-   ("C-c D h" . dap-hydra)
-
-   ;; Breakpoint management
-   ("C-c D b" . dap-breakpoint-toggle)
-   ("C-c D B" . dap-breakpoint-delete-all)
-   ("C-c D c" . dap-breakpoint-condition)
-
-   ;; Session control
-   ("C-c D n" . dap-next)
-   ("C-c D i" . dap-step-in)
-   ("C-c D o" . dap-step-out)
-   ("C-c D r" . dap-continue)
-   ("C-c D Q" . dap-disconnect)
-
-   ;; UI controls
-   ("C-c D u" . dap-ui-repl)
-
-   ;; Quick access
-   ("<f10>" . dap-debug))
-
-  :custom
-  ;; UI Configuration
-  (dap-auto-configure-features
-   '(sessions locals breakpoints expressions controls tooltip))
-  (dap-auto-show-output t)
-
-  :config
-  (dap-ui-mode 1)
-
-  ;; Windows-specific configuration
-  (when *is-a-windoof*
-    (setq dap-utils-extension-path
-          (expand-file-name "dap-extensions" user-emacs-directory))))
-
-(use-package dap-hydra
-  :after dap-mode
-  :straight nil
-  :commands dap-hydra)
-
-;;; .NET Core / C# Debugging
-(use-package dap-netcore
-  :straight nil
-  :after dap-mode
-  :demand t  ;; Load immediately after dap-mode
-  :custom
-  ;; Set the download URL explicitly to avoid auto-detection failures
-  ;; Update version number as needed from: https://github.com/Samsung/netcoredbg/releases
-  (dap-netcore-download-url "https://github.com/Samsung/netcoredbg/releases/download/3.1.3-1062/netcoredbg-win64.zip")
-  :config
-  (require 'dap-netcore)
-
-  ;; Console application template - prompts for DLL file
-  (dap-register-debug-template
-   ".NET Core Launch (console)"
-   (list :type "coreclr"
-         :request "launch"
-         :mode "launch"
-         :name ".NET Core Launch"
-         :program (lambda () (read-file-name "Select DLL to debug: " (projectile-project-root) nil t nil
-                                             (lambda (name) (string-match-p "\\.dll$" name))))
-         :cwd (lambda () (projectile-project-root))
-         :stopAtEntry nil
-         :console "integratedTerminal"))
-
-  ;; Web application template - prompts for DLL file
-  (dap-register-debug-template
-   ".NET Core Launch (web)"
-   (list :type "coreclr"
-         :request "launch"
-         :name ".NET Core Launch (web)"
-         :program (lambda () (read-file-name "Select DLL to debug: " (projectile-project-root) nil t nil
-                                             (lambda (name) (string-match-p "\\.dll$" name))))
-         :cwd (lambda () (projectile-project-root))
-         :stopAtEntry nil
-         :env (list "ASPNETCORE_ENVIRONMENT" "Development")
-         :console "integratedTerminal"))
-
-  ;; Attach to process
-  (dap-register-debug-template
-   ".NET Core Attach"
-   (list :type "coreclr"
-         :request "attach"
-         :name ".NET Core Attach"
-         :processId "${command:pickProcess}")))
-
-;;; Go Debugging
-(use-package dap-go
-  :straight nil
-  :after dap-mode
-  :config
-  (require 'dap-go)
-
-  (add-hook 'go-mode-hook
-            (lambda () (require 'dap-go)))
-
-  ;; Launch package
-  (dap-register-debug-template
-   "Go Launch Package"
-   (list :type "go"
-         :request "launch"
-         :name "Launch Package"
-         :mode "debug"
-         :program "${workspaceFolder}"
-         :cwd "${workspaceFolder}"))
-
-  ;; Debug test
-  (dap-register-debug-template
-   "Go Test Current Function"
-   (list :type "go"
-         :request "launch"
-         :name "Test Current Function"
-         :mode "test"
-         :program "${workspaceFolder}"
-         :args ["-test.run" "${function}"]
-         :cwd "${workspaceFolder}")))
-
-;;; Node.js / Next.js / TypeScript Debugging
-(use-package dap-node
-  :straight nil
-  :after dap-mode
-  :config
-  (require 'dap-node)
-
-  (add-hook 'typescript-mode-hook
-            (lambda () (require 'dap-node)))
-
-  (add-hook 'js-mode-hook
-            (lambda () (require 'dap-node)))
-
-  ;; Next.js dev server
-  (dap-register-debug-template
-   "Next.js Dev Server"
-   (list :type "node"
-         :request "launch"
-         :name "Next.js Dev"
-         :runtimeExecutable "npm"
-         :runtimeArgs ["run" "dev"]
-         :cwd "${workspaceFolder}"
-         :sourceMaps t
-         :protocol "inspector"
-         :console "integratedTerminal"
-         :serverReadyAction (list :pattern "started server on .+, url: (https?://.+)"
-                                  :uriFormat "%s"
-                                  :action "openExternally")))
-
-  ;; Next.js server-side debugging
-  (dap-register-debug-template
-   "Next.js Server-Side"
-   (list :type "node"
-         :request "launch"
-         :name "Next.js Server-Side"
-         :runtimeExecutable "npm"
-         :runtimeArgs ["run" "dev"]
-         :cwd "${workspaceFolder}"
-         :sourceMaps t
-         :protocol "inspector"
-         :outFiles ["${workspaceFolder}/.next/**/*.js"]
-         :skipFiles ["<node_internals>/**"]
-         :console "integratedTerminal"))
-
-  ;; Jest tests
-   (dap-register-debug-template
-    "Node Jest Tests"
-    (list :type "node"
-          :request "launch"
-          :name "Jest Tests"
-          :program "${workspaceFolder}/node_modules/.bin/jest"
-          :args ["--runInBand" "--no-coverage" "${file}"]
-          :cwd "${workspaceFolder}"
-          :sourceMaps t
-          :protocol "inspector"
-          :console "integratedTerminal")))
-
-;;; ------------------------------------------------------------
-;;; Next.js / TypeScript Development
-;;; ------------------------------------------------------------
-
-;; TypeScript Mode: Syntax highlighting and editing for TypeScript
-;; Works with LSP for type checking, completion, and refactoring
-(use-package typescript-mode
-  :mode (("\\.ts\\'" . typescript-mode)
-         ("\\.mts\\'" . typescript-mode)
-         ("\\.cts\\'" . typescript-mode))
-  :hook (typescript-mode . lsp-deferred)
-  :custom
-  (typescript-indent-level 2))
-
-;; Web Mode: Universal mode for web templates including JSX/TSX
-;; Handles HTML, JSX, TSX, and other web template formats
-(use-package web-mode
-  :mode (("\\.tsx\\'" . web-mode)
-         ("\\.jsx\\'" . web-mode)
-         ("\\.html\\'" . web-mode))
-  :hook (web-mode . lsp-deferred)
-  :custom
-  (web-mode-markup-indent-offset 2)
-  (web-mode-css-indent-offset 2)
-  (web-mode-code-indent-offset 2)
-  (web-mode-enable-auto-quoting nil)
-  (web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'")
-                                   ("tsx" . "\\.tsx\\'")))
-  :config
-  ;; Enable TypeScript support in web-mode for .tsx files
-  (add-hook 'web-mode-hook
-            (lambda ()
-              (when (string-match-p "\\.tsx\\'" (buffer-file-name))
-                (setq-local web-mode-enable-auto-closing t)
-                (setq-local web-mode-enable-auto-pairing t)))))
-
-;; Prettier: Code formatter for JavaScript/TypeScript/CSS/JSON
-;; Auto-formats code on save for consistent style
-(use-package prettier
-  :hook ((typescript-mode . prettier-mode)
-         (web-mode . prettier-mode)
-         (js-mode . prettier-mode)
-         (json-mode . prettier-mode)
-         (css-mode . prettier-mode)
-         (scss-mode . prettier-mode))
-  :bind (("C-c f" . prettier-prettify))
-  :custom
-  ;; Use project-local prettier if available
-  (prettier-enabled-parsers '(typescript tsx json css scss))
-  :config
-  ;; Only format if prettier config exists in project
-  (setq prettier-mode-sync-config-flag t))
-
-;; Configure LSP for TypeScript with typescript-language-server
-;; Provides intelligent code completion, type checking, refactoring
-(with-eval-after-load 'lsp-mode
-  ;; TypeScript/JavaScript LSP settings
-  (setq lsp-typescript-suggest-auto-imports t)
-  (setq lsp-typescript-format-enable nil)  ; Use prettier instead
-  (setq lsp-javascript-format-enable nil)  ; Use prettier instead
-
-  ;; Performance tuning for large TypeScript projects
-  (setq lsp-typescript-preferences-include-package-json-auto-imports "on")
-  (setq lsp-typescript-preferences-import-module-specifier "relative")
-
-  ;; Tailwind CSS Language Server
-  ;; Provides IntelliSense for Tailwind classes
-  (add-to-list 'lsp-language-id-configuration '(web-mode . "typescriptreact"))
-  (add-to-list 'lsp-language-id-configuration '(typescript-mode . "typescript"))
-
-  ;; Enable Tailwind LSP for TSX/JSX files
-  (lsp-register-client
-   (make-lsp-client
-    :new-connection (lsp-stdio-connection "tailwindcss-language-server")
-    :activation-fn (lsp-activate-on "typescriptreact" "javascriptreact" "html" "css")
-    :priority -1
-    :add-on? t
-    :server-id 'tailwindcss-ls)))
-
-;; Import organization helper function
-(defun ss/organize-imports ()
-  "Organize imports in the current TypeScript/JavaScript file."
-  (interactive)
-  (if (and (bound-and-true-p lsp-mode)
-           (or (eq major-mode 'typescript-mode)
-               (eq major-mode 'web-mode)
-               (eq major-mode 'js-mode)))
-      (lsp-organize-imports)
-    (message "LSP not available or not a TypeScript/JavaScript file")))
-
-;; Add keybinding for organize imports
-(with-eval-after-load 'lsp-mode
-  (define-key lsp-mode-map (kbd "C-c l o") #'ss/organize-imports))
-
-;; Dotenv Mode: Syntax highlighting for .env files
-(use-package dotenv-mode
-  :mode (("\\.env\\'" . dotenv-mode)
-         ("\\.env\\..*\\'" . dotenv-mode)))
-
-;; JSON Mode: Better editing for package.json, tsconfig.json
-(use-package json-mode
-  :mode (("\\.json\\'" . json-mode)
-         ("\\.jsonc\\'" . json-mode))
-  :hook (json-mode . lsp-deferred)
-  :custom
-  (json-reformat:indent-width 2)
-  (js-indent-level 2))
-
-;; Emmet Mode: Fast HTML/JSX expansion
-;; Type: div.container>ul>li*3 then C-j to expand
-(use-package emmet-mode
-  :hook ((web-mode . emmet-mode)
-         (html-mode . emmet-mode)
-         (css-mode . emmet-mode))
-  :bind (:map emmet-mode-keymap
-              ("C-j" . emmet-expand-line)
-              ("C-c j" . emmet-expand-line))
-  :custom
-  (emmet-move-cursor-between-quotes t)
-  (emmet-self-closing-tag-style " /"))
-
-;; NPM Integration: Run npm scripts from Emacs
-(defun ss/npm-run-dev ()
-  "Start Next.js dev server."
-  (interactive)
-  (let ((default-directory (projectile-project-root)))
-    (compile "npm run dev")))
-
-(defun ss/npm-run-build ()
-  "Build Next.js project."
-  (interactive)
-  (let ((default-directory (projectile-project-root)))
-    (compile "npm run build")))
-
-(defun ss/npm-run-test ()
-  "Run tests for Next.js project."
-  (interactive)
-  (let ((default-directory (projectile-project-root)))
-    (compile "npm test")))
-
-(defun ss/npm-run-script ()
-  "Select and run an npm script from package.json."
-  (interactive)
-  (let* ((default-directory (projectile-project-root))
-         (package-json (expand-file-name "package.json" default-directory)))
-    (if (file-exists-p package-json)
-        (let* ((json-object-type 'hash-table)
-               (json-array-type 'list)
-               (json-key-type 'string)
-               (package-data (json-read-file package-json))
-               (scripts (gethash "scripts" package-data))
-               (script-names (if scripts (hash-table-keys scripts) nil)))
-          (if script-names
-              (let ((script (completing-read "Run npm script: " script-names)))
-                (compile (format "npm run %s" script)))
-            (message "No scripts found in package.json")))
-      (message "package.json not found in project root"))))
-
-;; NPM keybindings
-(global-set-key (kbd "C-c n d") #'ss/npm-run-dev)
-(global-set-key (kbd "C-c n b") #'ss/npm-run-build)
-(global-set-key (kbd "C-c n t") #'ss/npm-run-test)
-(global-set-key (kbd "C-c n s") #'ss/npm-run-script)
-
-;; DevDocs for React and Next.js
-(with-eval-after-load 'devdocs
-  (add-hook 'web-mode-hook
-            (lambda ()
-              (when (string-match-p "\\.tsx\\'" (or (buffer-file-name) ""))
-                (setq-local devdocs-current-docs '("typescript" "react" "node"))))))
 
 ;; Helpful: Much better help buffers with examples, source code, and references
 ;; Replaces default help commands with more informative versions
@@ -996,17 +677,9 @@ Otherwise, opens in the directory of the current file."
 (use-package forge
   :after magit)
 
-;; Magit keybindings:
-;; C-x g     - magit-status (main interface)
-
 ;;; ------------------------------------------------------------
 ;;; Misc packages
 ;;; ------------------------------------------------------------
-
-;;; ------------------------------------------------------------
-
-;;; ------------------------------------------------------------
-
 
 (use-package docker)
 
@@ -1207,6 +880,16 @@ Otherwise, opens in the directory of the current file."
 ;; (add-hook 'before-save-hook 'delete-trailing-whitespace)
 
 
+
+;;; ------------------------------------------------------------
+;;; Custom Modeline
+
+(use-package nerd-icons
+  :straight t
+  :custom
+  (nerd-icons-font-family "Symbols Nerd Font Mono"))
+
+(load (expand-file-name "custom-modeline.el" user-emacs-directory) t t)
 
 (provide 'init)
 ;;; init.el ends here

@@ -11,7 +11,9 @@
   :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
          (csharp-mode . lsp-deferred)
          (go-mode . lsp-deferred)
-         (typescript-mode . lsp-deferred)
+         (typescript-ts-mode . lsp-deferred)
+         (tsx-ts-mode . lsp-deferred)
+         (js-ts-mode . lsp-deferred)
          (js-mode . lsp-deferred)
 
          ;; if you want which-key integration
@@ -185,7 +187,13 @@
   :config
   (require 'dap-node)
 
-  (add-hook 'typescript-mode-hook
+  (add-hook 'typescript-ts-mode-hook
+            (lambda () (require 'dap-node)))
+
+  (add-hook 'tsx-ts-mode-hook
+            (lambda () (require 'dap-node)))
+
+  (add-hook 'js-ts-mode-hook
             (lambda () (require 'dap-node)))
 
   (add-hook 'js-mode-hook

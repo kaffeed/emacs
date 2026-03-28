@@ -626,6 +626,34 @@ Otherwise, opens in the directory of the current file."
 (use-package tree-sitter-langs
   :after tree-sitter)
 
+(setq treesit-language-source-alist
+      '((bash "https://github.com/tree-sitter/tree-sitter-bash")
+        (cmake "https://github.com/uyha/tree-sitter-cmake")
+        (css "https://github.com/tree-sitter/tree-sitter-css")
+        (elisp "https://github.com/Wilfred/tree-sitter-elisp")
+        (go "https://github.com/tree-sitter/tree-sitter-go")
+        (html "https://github.com/tree-sitter/tree-sitter-html")
+        (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
+        (json "https://github.com/tree-sitter/tree-sitter-json")
+        (make "https://github.com/alemuller/tree-sitter-make")
+        (markdown "https://github.com/ikatyang/tree-sitter-markdown")
+        (python "https://github.com/tree-sitter/tree-sitter-python")
+        (toml "https://github.com/tree-sitter/tree-sitter-toml")
+        (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
+        (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
+        (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
+
+;; Configure native tree-sitter modes
+(setq major-mode-remap-alist
+      '((typescript-mode . typescript-ts-mode)
+        (js-mode . js-ts-mode)
+        (css-mode . css-ts-mode)
+        (json-mode . json-ts-mode)))
+
+(add-to-list 'auto-mode-alist '("\\.tsx\\'" . tsx-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.ts\\'" . typescript-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.jsx\\'" . tsx-ts-mode))
+
 ;;; ------------------------------------------------------------
 ;;; Lsp
 ;;; ------------------------------------------------------------
@@ -865,8 +893,12 @@ Otherwise, opens in the directory of the current file."
             (lambda () (setq-local devdocs-current-docs '("python~3.12"))))
   (add-hook 'js-mode-hook
             (lambda () (setq-local devdocs-current-docs '("javascript" "node"))))
-  (add-hook 'typescript-mode-hook
+  (add-hook 'js-ts-mode-hook
+            (lambda () (setq-local devdocs-current-docs '("javascript" "node"))))
+  (add-hook 'typescript-ts-mode-hook
             (lambda () (setq-local devdocs-current-docs '("typescript" "node"))))
+  (add-hook 'tsx-ts-mode-hook
+            (lambda () (setq-local devdocs-current-docs '("react" "next.js" "typescript" "node"))))
   (add-hook 'csharp-mode-hook
             (lambda () (setq-local devdocs-current-docs '("dotnet~8.0"))))
   (add-hook 'go-mode-hook

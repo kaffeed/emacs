@@ -643,6 +643,11 @@ Otherwise, opens in the directory of the current file."
         (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
         (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
 
+;; Automatically install missing tree-sitter grammars
+(dolist (lang treesit-language-source-alist)
+  (unless (treesit-language-available-p (car lang))
+    (treesit-install-language-grammar (car lang))))
+
 ;; Configure native tree-sitter modes
 (setq major-mode-remap-alist
       '((typescript-mode . typescript-ts-mode)

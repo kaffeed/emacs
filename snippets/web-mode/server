@@ -1,0 +1,14 @@
+# -*- mode: snippet -*-
+# name: Next.js Server Component
+# key: server
+# --
+export default async function ${1:ServerComponent}() {
+  ${2:const data = await fetchData();}
+
+  return (
+    <div>
+      <h2>${3:Server Component}</h2>
+      $0
+    </div>
+  );
+}

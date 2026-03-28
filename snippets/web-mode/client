@@ -1,0 +1,16 @@
+# -*- mode: snippet -*-
+# name: Next.js Client Component
+# key: client
+# --
+'use client';
+
+${1:import { useState } from 'react';}
+
+export default function ${2:ComponentName}() {
+  $0
+  return (
+    <div>
+      <h2>${3:Component Title}</h2>
+    </div>
+  );
+}

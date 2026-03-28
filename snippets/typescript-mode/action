@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: Next.js Server Action
+# key: action
+# --
+'use server';
+
+export async function ${1:actionName}(${2:formData: FormData}) {
+  $0
+  // Process the action
+  return { success: true };
+}

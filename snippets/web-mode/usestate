@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: React useState hook
+# key: us
+# --
+const [${1:state}, set${1:$(upcase (substring yas-text 0 1))}${1:$(substring yas-text 1)}] = useState$2($3);$0

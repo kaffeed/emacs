@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: Next.js Metadata Export
+# key: metadata
+# --
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: '${1:Page Title}',
+  description: '${2:Page description}',
+};
+
+$0

@@ -1,0 +1,17 @@
+# -*- mode: snippet -*-
+# name: Next.js API Route Handler (App Router)
+# key: api
+# --
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function ${1:GET}(request: NextRequest) {
+  try {
+    $0
+    return NextResponse.json({ ${2:data} });
+  } catch (error) {
+    return NextResponse.json(
+      { error: '${3:Internal Server Error}' },
+      { status: 500 }
+    );
+  }
+}

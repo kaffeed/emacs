@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: Next.js Page Component
+# key: page
+# --
+export default function ${1:PageName}() {
+  return (
+    <div>
+      <h1>${2:Page Title}</h1>
+      $0
+    </div>
+  );
+}

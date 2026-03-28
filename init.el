@@ -236,7 +236,6 @@ Otherwise, opens in the directory of the current file."
    ("C-c t" . org-todo-list)
    ("C-c w" . delete-trailing-whitespace)
    ("C-c RET" . ss/open-external-terminal)
-   ("C-c C-b" . ibuffer)
    ("M-s f" . find-name-dired)
    ("M-j" . duplicate-dwim)))
 
@@ -771,18 +770,188 @@ Otherwise, opens in the directory of the current file."
          :console "integratedTerminal"))
 
   ;; Jest tests
-  (dap-register-debug-template
-   "Node Jest Tests"
-   (list :type "node"
-         :request "launch"
-         :name "Jest Tests"
-         :program "${workspaceFolder}/node_modules/.bin/jest"
-         :args ["--runInBand" "--no-coverage" "${file}"]
-         :cwd "${workspaceFolder}"
-         :sourceMaps t
-         :protocol "inspector"
-         :console "integratedTerminal")))
+   (dap-register-debug-template
+    "Node Jest Tests"
+    (list :type "node"
+          :request "launch"
+          :name "Jest Tests"
+          :program "${workspaceFolder}/node_modules/.bin/jest"
+          :args ["--runInBand" "--no-coverage" "${file}"]
+          :cwd "${workspaceFolder}"
+          :sourceMaps t
+          :protocol "inspector"
+          :console "integratedTerminal")))
 
+;;; ------------------------------------------------------------
+;;; Next.js / TypeScript Development
+;;; ------------------------------------------------------------
+
+;; TypeScript Mode: Syntax highlighting and editing for TypeScript
+;; Works with LSP for type checking, completion, and refactoring
+(use-package typescript-mode
+  :mode (("\\.ts\\'" . typescript-mode)
+         ("\\.mts\\'" . typescript-mode)
+         ("\\.cts\\'" . typescript-mode))
+  :hook (typescript-mode . lsp-deferred)
+  :custom
+  (typescript-indent-level 2))
+
+;; Web Mode: Universal mode for web templates including JSX/TSX
+;; Handles HTML, JSX, TSX, and other web template formats
+(use-package web-mode
+  :mode (("\\.tsx\\'" . web-mode)
+         ("\\.jsx\\'" . web-mode)
+         ("\\.html\\'" . web-mode))
+  :hook (web-mode . lsp-deferred)
+  :custom
+  (web-mode-markup-indent-offset 2)
+  (web-mode-css-indent-offset 2)
+  (web-mode-code-indent-offset 2)
+  (web-mode-enable-auto-quoting nil)
+  (web-mode-content-types-alist '(("jsx" . "\\.js[x]?\\'")
+                                   ("tsx" . "\\.tsx\\'")))
+  :config
+  ;; Enable TypeScript support in web-mode for .tsx files
+  (add-hook 'web-mode-hook
+            (lambda ()
+              (when (string-match-p "\\.tsx\\'" (buffer-file-name))
+                (setq-local web-mode-enable-auto-closing t)
+                (setq-local web-mode-enable-auto-pairing t)))))
+
+;; Prettier: Code formatter for JavaScript/TypeScript/CSS/JSON
+;; Auto-formats code on save for consistent style
+(use-package prettier
+  :hook ((typescript-mode . prettier-mode)
+         (web-mode . prettier-mode)
+         (js-mode . prettier-mode)
+         (json-mode . prettier-mode)
+         (css-mode . prettier-mode)
+         (scss-mode . prettier-mode))
+  :bind (("C-c f" . prettier-prettify))
+  :custom
+  ;; Use project-local prettier if available
+  (prettier-enabled-parsers '(typescript tsx json css scss))
+  :config
+  ;; Only format if prettier config exists in project
+  (setq prettier-mode-sync-config-flag t))
+
+;; Configure LSP for TypeScript with typescript-language-server
+;; Provides intelligent code completion, type checking, refactoring
+(with-eval-after-load 'lsp-mode
+  ;; TypeScript/JavaScript LSP settings
+  (setq lsp-typescript-suggest-auto-imports t)
+  (setq lsp-typescript-format-enable nil)  ; Use prettier instead
+  (setq lsp-javascript-format-enable nil)  ; Use prettier instead
+
+  ;; Performance tuning for large TypeScript projects
+  (setq lsp-typescript-preferences-include-package-json-auto-imports "on")
+  (setq lsp-typescript-preferences-import-module-specifier "relative")
+
+  ;; Tailwind CSS Language Server
+  ;; Provides IntelliSense for Tailwind classes
+  (add-to-list 'lsp-language-id-configuration '(web-mode . "typescriptreact"))
+  (add-to-list 'lsp-language-id-configuration '(typescript-mode . "typescript"))
+
+  ;; Enable Tailwind LSP for TSX/JSX files
+  (lsp-register-client
+   (make-lsp-client
+    :new-connection (lsp-stdio-connection "tailwindcss-language-server")
+    :activation-fn (lsp-activate-on "typescriptreact" "javascriptreact" "html" "css")
+    :priority -1
+    :add-on? t
+    :server-id 'tailwindcss-ls)))
+
+;; Import organization helper function
+(defun ss/organize-imports ()
+  "Organize imports in the current TypeScript/JavaScript file."
+  (interactive)
+  (if (and (bound-and-true-p lsp-mode)
+           (or (eq major-mode 'typescript-mode)
+               (eq major-mode 'web-mode)
+               (eq major-mode 'js-mode)))
+      (lsp-organize-imports)
+    (message "LSP not available or not a TypeScript/JavaScript file")))
+
+;; Add keybinding for organize imports
+(with-eval-after-load 'lsp-mode
+  (define-key lsp-mode-map (kbd "C-c l o") #'ss/organize-imports))
+
+;; Dotenv Mode: Syntax highlighting for .env files
+(use-package dotenv-mode
+  :mode (("\\.env\\'" . dotenv-mode)
+         ("\\.env\\..*\\'" . dotenv-mode)))
+
+;; JSON Mode: Better editing for package.json, tsconfig.json
+(use-package json-mode
+  :mode (("\\.json\\'" . json-mode)
+         ("\\.jsonc\\'" . json-mode))
+  :hook (json-mode . lsp-deferred)
+  :custom
+  (json-reformat:indent-width 2)
+  (js-indent-level 2))
+
+;; Emmet Mode: Fast HTML/JSX expansion
+;; Type: div.container>ul>li*3 then C-j to expand
+(use-package emmet-mode
+  :hook ((web-mode . emmet-mode)
+         (html-mode . emmet-mode)
+         (css-mode . emmet-mode))
+  :bind (:map emmet-mode-keymap
+              ("C-j" . emmet-expand-line)
+              ("C-c j" . emmet-expand-line))
+  :custom
+  (emmet-move-cursor-between-quotes t)
+  (emmet-self-closing-tag-style " /"))
+
+;; NPM Integration: Run npm scripts from Emacs
+(defun ss/npm-run-dev ()
+  "Start Next.js dev server."
+  (interactive)
+  (let ((default-directory (projectile-project-root)))
+    (compile "npm run dev")))
+
+(defun ss/npm-run-build ()
+  "Build Next.js project."
+  (interactive)
+  (let ((default-directory (projectile-project-root)))
+    (compile "npm run build")))
+
+(defun ss/npm-run-test ()
+  "Run tests for Next.js project."
+  (interactive)
+  (let ((default-directory (projectile-project-root)))
+    (compile "npm test")))
+
+(defun ss/npm-run-script ()
+  "Select and run an npm script from package.json."
+  (interactive)
+  (let* ((default-directory (projectile-project-root))
+         (package-json (expand-file-name "package.json" default-directory)))
+    (if (file-exists-p package-json)
+        (let* ((json-object-type 'hash-table)
+               (json-array-type 'list)
+               (json-key-type 'string)
+               (package-data (json-read-file package-json))
+               (scripts (gethash "scripts" package-data))
+               (script-names (if scripts (hash-table-keys scripts) nil)))
+          (if script-names
+              (let ((script (completing-read "Run npm script: " script-names)))
+                (compile (format "npm run %s" script)))
+            (message "No scripts found in package.json")))
+      (message "package.json not found in project root"))))
+
+;; NPM keybindings
+(global-set-key (kbd "C-c n d") #'ss/npm-run-dev)
+(global-set-key (kbd "C-c n b") #'ss/npm-run-build)
+(global-set-key (kbd "C-c n t") #'ss/npm-run-test)
+(global-set-key (kbd "C-c n s") #'ss/npm-run-script)
+
+;; DevDocs for React and Next.js
+(with-eval-after-load 'devdocs
+  (add-hook 'web-mode-hook
+            (lambda ()
+              (when (string-match-p "\\.tsx\\'" (or (buffer-file-name) ""))
+                (setq-local devdocs-current-docs '("typescript" "react" "node"))))))
 
 ;; Helpful: Much better help buffers with examples, source code, and references
 ;; Replaces default help commands with more informative versions

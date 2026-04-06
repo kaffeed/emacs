@@ -227,5 +227,24 @@
   (org-journal-enable-agenda-integration t)
   (org-journal-hide-entries-p nil))
 
+;;; ------------------------------------------------------------
+;;; Org-Modern
+;;; ------------------------------------------------------------
+(use-package org-modern
+  :hook
+  ((org-mode . org-modern-mode)
+   (org-agenda-finalize . org-modern-agenda)))
+
 (provide 'org-config)
 ;;; org-config.el ends here
+
+
+
+
+
+
+
+
+
+
+

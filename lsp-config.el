@@ -10,6 +10,7 @@
   (setq lsp-keymap-prefix "C-c l")
   :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
          (csharp-mode . lsp-deferred)
+	 (c-mode . lsp-deferred)
          (go-mode . lsp-deferred)
          (typescript-ts-mode . lsp-deferred)
          (tsx-ts-mode . lsp-deferred)
@@ -21,16 +22,17 @@
   :commands (lsp lsp-deferred)
   :config
   (setq lsp-headerline-breadcrumb-enable nil)
-  (setq lsp-use-plists t))
-
-;; Performance: Increase process output buffer to 1MB
-
-(use-package lsp-ui :commands lsp-ui-mode
-  :config
-  (setq lsp-ui-doc-show-with-cursor t)
-  (setq lsp-ui-doc-enable nil)
-  (setq lsp-ui-sideline-enable nil)
-  (setq lsp-ui-doc-show-with-mouse nil))
+  (setq lsp-use-plists t)
+ ;; Tell lsp-mode to use the echo area (under the modeline) for signatures
+  ;; (setq lsp-signature-function 'eldoc)
+  (setq lsp-eldoc-enable-hover t)
+  ;; Only use the echo area for quick signatures, let eldoc-box handle the child frame.
+  ;; This prevents the *eldoc* buffer from popping up automatically and splitting the window.
+  (setq eldoc-display-functions '(eldoc-display-in-echo-area))
+  ;; Use nerd-icons for the code action modeline icon
+  (when (require 'nerd-icons nil t)
+    (setq lsp-modeline-code-action-fallback-icon 
+          (propertize " " 'display (nerd-icons-mdicon "nf-md-lightbulb" :face 'warning :v-adjust -0.05)))))
 
 ;;; ------------------------------------------------------------
 ;;; DAP Mode - Debug Adapter Protocol

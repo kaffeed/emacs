@@ -225,17 +225,6 @@ Otherwise, opens in the directory of the current file."
         (isearch-exit))))
   (define-key isearch-mode-map (kbd "M-w") #'ss/isearch-copy-selected-word)
 
-  ;; TRAMP Speed Hack
-  (connection-local-set-profile-variables
-   'remote-direct-async-process
-   '((tramp-direct-async-process . t)))
-  (connection-local-set-profiles
-   '(:application tramp :protocol "scp")
-   'remote-direct-async-process)
-  (with-eval-after-load 'tramp
-    (with-eval-after-load 'compile
-      (remove-hook 'compilation-mode-hook #'tramp-compile-disable-ssh-controlmaster-options)))
-
   (setq create-lockfiles nil)
   (setq next-line-add-newlines t)
 
@@ -301,7 +290,8 @@ Otherwise, opens in the directory of the current file."
    ("C-c RET" . ss/open-external-terminal)
    ("C-c C-b" . ibuffer)
    ("M-s f" . find-name-dired)
-   ("M-j" . duplicate-dwim)))
+   ("M-j" . duplicate-dwim))
+  )
 
 ;; Configure use-package to use straight.el by default
 (setq straight-use-package-by-default t
@@ -352,31 +342,49 @@ Otherwise, opens in the directory of the current file."
   :config
   (spacious-padding-mode 1))
 
-(use-package ef-themes
-  :ensure t
-  :init
-  ;; This makes the Modus commands listed below consider only the Ef
-  ;; themes.  For an alternative that includes Modus and all
-  ;; derivative themes (like Ef), enable the
-  ;; `modus-themes-include-derivatives-mode' instead.  The manual of
-  ;; the Ef themes has a section that explains all the possibilities:
-  ;;
-  ;; - Evaluate `(info "(ef-themes) Working with other Modus themes or taking over Modus")'
-  ;; - Visit <https://protesilaos.com/emacs/ef-themes#h:6585235a-5219-4f78-9dd5-6a64d87d1b6e>
-  (ef-themes-take-over-modus-themes-mode 1)
-  :bind
-  (("<f5>" . modus-themes-rotate)
-   ("C-<f5>" . modus-themes-select)
-   ("M-<f5>" . modus-themes-load-random))
-  :config
-  ;; All customisations here.
-  (setq modus-themes-mixed-fonts t)
-  (setq modus-themes-italic-constructs t)
+;; (use-package ef-themes
+;;   :ensure t
+;;   :init
+;;   ;; This makes the Modus commands listed below consider only the Ef
+;;   ;; themes.  For an alternative that includes Modus and all
+;;   ;; derivative themes (like Ef), enable the
+;;   ;; `modus-themes-include-derivatives-mode' instead.  The manual of
+;;   ;; the Ef themes has a section that explains all the possibilities:
+;;   ;;
+;;   ;; - Evaluate `(info "(ef-themes) Working with other Modus themes or taking over Modus")'
+;;   ;; - Visit <https://protesilaos.com/emacs/ef-themes#h:6585235a-5219-4f78-9dd5-6a64d87d1b6e>
+;;   (ef-themes-take-over-modus-themes-mode 1)
+;;   :bind
+;;   (("<f5>" . modus-themes-rotate)
+;;    ("C-<f5>" . modus-themes-select)
+;;    ("M-<f5>" . modus-themes-load-random))
+;;   :config
+;;   ;; All customisations here.
+;;   (setq modus-themes-mixed-fonts t)
+;;   (setq modus-themes-italic-constructs t)
+;; 
+;;   ;; Finally, load your theme of choice (or a random one with
+;;   ;; `modus-themes-load-random', `modus-themes-load-random-dark',
+;;   ;; `modus-themes-load-random-light').
+;;   (modus-themes-load-theme 'ef-arbutus))
 
-  ;; Finally, load your theme of choice (or a random one with
-  ;; `modus-themes-load-random', `modus-themes-load-random-dark',
-  ;; `modus-themes-load-random-light').
-  (modus-themes-load-theme 'modus-vivendi-tinted))
+;; Set up custom themes directory
+(add-to-list 'custom-theme-load-path (expand-file-name "themes" user-emacs-directory))
+
+;; Install and configure doom-themes
+(use-package doom-themes
+  :ensure t
+  :config
+  ;; Global settings (defaults)
+  (setq doom-themes-enable-bold t    ;; if nil, bold is universally disabled
+        doom-themes-enable-italic t) ;; if nil, italics is universally disabled
+  (doom-themes-visual-bell-config)
+  ;; Corrects (and improves) org-mode's native fontification.
+  ;; (doom-themes-org-config)
+  )
+
+;; Load the compline theme
+(load-theme 'lauds t)
 
 ;;; ------------------------------------------------------------
 ;;; Environment Variables (important for macOS)
@@ -447,7 +455,9 @@ Otherwise, opens in the directory of the current file."
 ;; Further reading: https://protesilaos.com/emacs/dotemacs#h:7cc77fd0-8f98-4fc0-80be-48a758fcb6e2
 (use-package orderless
   :config
-  (setq completion-styles '(orderless basic)))
+  (setq completion-styles '(orderless basic)
+        completion-category-defaults nil
+        completion-category-overrides '((file (styles partial-completion)))))
 
 
 ;; The `consult' package provides lots of commands that are enhanced
@@ -599,6 +609,12 @@ Otherwise, opens in the directory of the current file."
   (add-hook 'prog-mode-hook 'flycheck-mode) ;; always lint my code
   (add-hook 'after-init-hook #'global-flycheck-mode))
 
+(use-package flycheck-posframe
+  :ensure t
+  :after flycheck
+  :config
+  (add-hook 'flycheck-mode-hook #'flycheck-posframe-mode))
+
 ;; Yasnippet: Template system for code snippets
 ;; Dramatically improves coding speed with pre-defined templates
 ;; for common patterns (class definitions, methods, loops, etc.)
@@ -627,21 +643,18 @@ Otherwise, opens in the directory of the current file."
   :after tree-sitter)
 
 (setq treesit-language-source-alist
-      '((bash "https://github.com/tree-sitter/tree-sitter-bash")
+      '((bash "https://github.com/tree-sitter/tree-sitter-bash" "v0.23.3")
         (cmake "https://github.com/uyha/tree-sitter-cmake")
-        (css "https://github.com/tree-sitter/tree-sitter-css")
-        (elisp "https://github.com/Wilfred/tree-sitter-elisp")
-        (go "https://github.com/tree-sitter/tree-sitter-go")
+        (css "https://github.com/tree-sitter/tree-sitter-css" "v0.23.2")
+        (go "https://github.com/tree-sitter/tree-sitter-go" "v0.23.4")
         (html "https://github.com/tree-sitter/tree-sitter-html")
-        (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
+        (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "v0.23.1")
         (json "https://github.com/tree-sitter/tree-sitter-json")
         (make "https://github.com/alemuller/tree-sitter-make")
-        (markdown "https://github.com/ikatyang/tree-sitter-markdown")
-        (python "https://github.com/tree-sitter/tree-sitter-python")
         (toml "https://github.com/tree-sitter/tree-sitter-toml")
         (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
         (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
-        (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
+        ))
 
 ;; Automatically install missing tree-sitter grammars
 (dolist (lang treesit-language-source-alist)
@@ -713,6 +726,10 @@ Otherwise, opens in the directory of the current file."
 ;;; ------------------------------------------------------------
 ;;; Misc packages
 ;;; ------------------------------------------------------------
+
+(use-package spacious-padding
+  :ensure t
+  :hook (after-init . spacious-padding-mode))
 
 (use-package docker)
 

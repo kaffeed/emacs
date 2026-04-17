@@ -305,7 +305,7 @@
 
 (defun custom-modeline-major-mode-name ()
   "Return capitalized `major-mode' without the -mode suffix."
-  (capitalize (string-replace "-mode" "" (symbol-name major-mode))))
+  (string-replace "-mode" "" (symbol-name major-mode)))
 
 (defvar-local custom-modeline-major-mode
     (list
@@ -335,7 +335,7 @@
   (when-let* ((rev (vc-working-revision file backend))
               (branch (or (vc-git--symbolic-ref file)
                           (substring rev 0 7))))
-    (capitalize branch)))
+    branch))
 
 (defun custom-modeline--vc-text (file branch &optional face)
   "Prepare text for Git controlled FILE, given BRANCH."

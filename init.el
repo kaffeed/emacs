@@ -384,7 +384,7 @@ Otherwise, opens in the directory of the current file."
   )
 
 ;; Load the compline theme
-(load-theme 'lauds t)
+(load-theme 'doom-gruvbox t)
 
 ;;; ------------------------------------------------------------
 ;;; Environment Variables (important for macOS)

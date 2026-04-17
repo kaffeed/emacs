@@ -174,6 +174,7 @@
                    (org-agenda-files '("~/org/inbox.org"))))))))
 
   ;; Simplified Capture Templates
+
   (setq org-capture-templates
         '(("i" "Inbox - Quick Capture" entry (file "~/org/inbox.org")
            "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n" :empty-lines 1)
@@ -226,14 +227,6 @@
   (org-journal-date-format "%A, %d %B %Y")
   (org-journal-enable-agenda-integration t)
   (org-journal-hide-entries-p nil))
-
-;;; ------------------------------------------------------------
-;;; Org-Modern
-;;; ------------------------------------------------------------
-(use-package org-modern
-  :hook
-  ((org-mode . org-modern-mode)
-   (org-agenda-finalize . org-modern-agenda)))
 
 (provide 'org-config)
 ;;; org-config.el ends here

@@ -554,6 +554,10 @@ Otherwise, opens in the directory of the current file."
   ;; This ensures .gitignore files are properly respected
   (projectile-indexing-method 'hybrid)
   (projectile-enable-caching t)
+  (projectile-git-submodule-command
+   (if *is-a-windoof*
+       "powershell.exe -NoProfile -NonInteractive -Command \"git submodule --quiet foreach 'echo $displaypath' | ForEach-Object { Write-Host -NoNewline (\\\"$_\\\" + [char]0) }\""
+     "git submodule --quiet foreach 'echo $displaypath' | tr '\\n' '\\0'"))
   ;; Explicitly set git command to exclude files per .gitignore
   (projectile-git-command "git ls-files -zco --exclude-standard"))
 
@@ -726,6 +730,8 @@ Otherwise, opens in the directory of the current file."
 ;;; ------------------------------------------------------------
 ;;; Misc packages
 ;;; ------------------------------------------------------------
+(use-package opencode
+  :straight (opencode :type git :host codeberg :repo "sczi/opencode.el"))
 
 (use-package spacious-padding
   :ensure t

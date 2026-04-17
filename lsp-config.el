@@ -16,11 +16,18 @@
          (tsx-ts-mode . lsp-deferred)
          (js-ts-mode . lsp-deferred)
          (js-mode . lsp-deferred)
+         (html-mode . lsp-deferred)
+         (mhtml-mode . lsp-deferred)
+         (css-mode . lsp-deferred)
+         (css-ts-mode . lsp-deferred)
+         (json-mode . lsp-deferred)
+         (json-ts-mode . lsp-deferred)
 
          ;; if you want which-key integration
          (lsp-mode . lsp-enable-which-key-integration))
   :commands (lsp lsp-deferred)
   :config
+  (require 'lsp-angular)
   (setq lsp-headerline-breadcrumb-enable nil)
   (setq lsp-use-plists t)
  ;; Tell lsp-mode to use the echo area (under the modeline) for signatures

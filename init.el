@@ -105,15 +105,17 @@ Otherwise, opens in the directory of the current file."
   (set-keyboard-coding-system 'utf-8)
   (set-selection-coding-system 'utf-8)
   (setq default-buffer-file-coding-system 'utf-8)
+  (setq-default bidi-display-reordering 'left-to-right
+		bidi-paragraph-direction 'left-to-right)
+  (setq bidi-inhibit-bpa t)
+  (setq redisplay-skip-fontification-on-input t)
+  (setq read-process-output-max (* 4 1024 1024)) ; 4MB
 
   ;; Performance: reset GC threshold to a sensible default after startup
   (add-hook 'after-init-hook
             (lambda ()
               (setq gc-cons-threshold (* 100 1024 1024)
                     gc-cons-percentage 0.1)))
-
-  (setq read-process-output-max (* 1024 1024))
-
   (setq inhibit-startup-message t
         inhibit-startup-screen t
         visible-bell t)
@@ -138,6 +140,29 @@ Otherwise, opens in the directory of the current file."
   (add-to-list 'default-frame-alist '(font . "Iosevka NFM-14"))
 
   :config
+  ;; Behavior and Window Management
+  (setq kill-do-not-save-duplicates t)
+  (setq savehist-additional-variables '(search-ring regexp-search-ring kill-ring))
+  (setq reb-re-syntax 'string)
+  (setq ffap-machine-p-known 'reject)
+  (setq window-combination-resize t)
+  (setq help-window-select t)
+
+  (add-hook 'after-save-hook #'executable-make-buffer-file-executable-if-script-p)
+
+  (winner-mode +1)
+  (defun toggle-delete-other-windows ()
+    "Delete other windows in frame if any, or restore previous window config."
+    (interactive)
+    (if (and winner-mode
+             (equal (selected-window) (next-window)))
+        (winner-undo)
+      (delete-other-windows)))
+
+  (advice-add 'save-place-find-file-hook :after
+              (lambda (&rest _)
+                (when buffer-file-name (ignore-errors (recenter)))))
+
   ;; Backup and version control
   (setq backup-directory-alist
         `(("." . ,(expand-file-name "backups/" user-emacs-directory))))
@@ -238,7 +263,8 @@ Otherwise, opens in the directory of the current file."
   (add-hook 'git-commit-setup-hook #'turn-on-auto-fill)
 
   :bind
-  (("C-x C-z" . nil)
+  (("C-x 1" . toggle-delete-other-windows)
+   ("C-x C-z" . nil)
    ("C-z" . nil)
    ("C-v" . ss/scroll-half-page-down)
    ("M-v" . ss/scroll-half-page-up)

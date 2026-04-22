@@ -975,7 +975,24 @@ Otherwise, opens in the directory of the current file."
   :custom
   (nerd-icons-font-family "Symbols Nerd Font Mono"))
 
-(load (expand-file-name "custom-modeline.el" user-emacs-directory) t t)
+(use-package doom-modeline
+  :ensure t
+  :init (doom-modeline-mode 1))
+;; (load (expand-file-name "custom-modeline.el" user-emacs-directory) t t)
 
 (provide 'init)
 ;;; init.el ends here
+
+
+
+
+
+
+
+
+
+
+
+
+
+

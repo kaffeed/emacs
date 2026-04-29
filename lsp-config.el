@@ -22,6 +22,7 @@
          (css-ts-mode . lsp-deferred)
          (json-mode . lsp-deferred)
          (json-ts-mode . lsp-deferred)
+         (yaml-ts-mode . lsp-deferred)
 
          ;; if you want which-key integration
          (lsp-mode . lsp-enable-which-key-integration))
@@ -251,6 +252,54 @@
          :sourceMaps t
          :protocol "inspector"
          :console "integratedTerminal")))
+
+;;; ------------------------------------------------------------
+;;; YAML Language Server
+;;; ------------------------------------------------------------
+;; Requires: npm i -g yaml-language-server
+;;
+;; Schema mappings associate YAML files with JSON schemas for
+;; validation and completion. Keys are schema URLs, values are
+;; glob patterns matching the files they apply to.
+
+(use-package lsp-yaml
+  :straight nil  ;; built into lsp-mode
+  :after lsp-mode
+  :custom
+  (lsp-yaml-format-enable t)
+  (lsp-yaml-validate t)
+  (lsp-yaml-hover t)
+  (lsp-yaml-completion t)
+  (lsp-yaml-schemas
+   '(;; Kubernetes resources
+     ("https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.31.0-standalone-strict/all.json"
+      . ["/*.k8s.yaml" "/*.k8s.yml"
+         "/kubernetes/**/*.yaml" "/kubernetes/**/*.yml"
+         "/k8s/**/*.yaml" "/k8s/**/*.yml"
+         "/manifests/**/*.yaml" "/manifests/**/*.yml"])
+     ;; Docker Compose
+     ("https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json"
+      . ["docker-compose.yaml" "docker-compose.yml"
+         "docker-compose.*.yaml" "docker-compose.*.yml"
+         "compose.yaml" "compose.yml"])
+     ;; GitHub Actions workflows
+     ("https://json.schemastore.org/github-workflow.json"
+      . [".github/workflows/*.yaml" ".github/workflows/*.yml"])
+     ;; GitHub Actions action definitions
+     ("https://json.schemastore.org/github-action.json"
+      . ["action.yaml" "action.yml"])
+     ;; Helm chart values
+     ("https://json.schemastore.org/chart.json"
+      . ["Chart.yaml" "Chart.yml"])
+     ;; Ansible playbooks / tasks
+     ("https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json#/$defs/playbook"
+      . ["playbook.yaml" "playbook.yml" "playbooks/**/*.yaml" "playbooks/**/*.yml"])
+     ;; pre-commit config
+     ("https://json.schemastore.org/pre-commit-config.json"
+      . [".pre-commit-config.yaml" ".pre-commit-config.yml"])
+     ;; GitLab CI
+     ("https://gitlab.com/gitlab-org/gitlab/-/raw/master/app/assets/javascripts/editor/schema/ci.json"
+      . [".gitlab-ci.yml" ".gitlab-ci.yaml"]))))
 
 (provide 'lsp-config)
 ;;; lsp-config.el ends here

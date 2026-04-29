@@ -658,19 +658,9 @@ Otherwise, opens in the directory of the current file."
   :after yasnippet)
 
 ;;; ------------------------------------------------------------
-;;; Tree-sitter - Modern syntax highlighting and code parsing
+;;; Tree-sitter - Native syntax highlighting and code parsing
 ;;; ------------------------------------------------------------
-;; Tree-sitter provides much better syntax highlighting than traditional
-;; regex-based modes by using actual language parsers
-
-(use-package tree-sitter
-  :config
-  (global-tree-sitter-mode)
-  :hook (tree-sitter-after-on-hook . tree-sitter-hl-mode))
-
-;; Tree-sitter language grammars for various programming languages
-(use-package tree-sitter-langs
-  :after tree-sitter)
+;; Uses Emacs 29+ built-in treesit integration with native *-ts-mode major modes
 
 (setq treesit-language-source-alist
       '((bash "https://github.com/tree-sitter/tree-sitter-bash" "v0.23.3")
@@ -684,6 +674,7 @@ Otherwise, opens in the directory of the current file."
         (toml "https://github.com/tree-sitter/tree-sitter-toml")
         (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
         (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
+        (yaml "https://github.com/tree-sitter-grammars/tree-sitter-yaml" "v0.6.1")
         ))
 
 ;; Automatically install missing tree-sitter grammars
@@ -696,11 +687,13 @@ Otherwise, opens in the directory of the current file."
       '((typescript-mode . typescript-ts-mode)
         (js-mode . js-ts-mode)
         (css-mode . css-ts-mode)
-        (json-mode . json-ts-mode)))
+        (json-mode . json-ts-mode)
+        (yaml-mode . yaml-ts-mode)))
 
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . tsx-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.ts\\'" . typescript-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.jsx\\'" . tsx-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . yaml-ts-mode))
 
 ;;; ------------------------------------------------------------
 ;;; Lsp
@@ -979,6 +972,30 @@ Otherwise, opens in the directory of the current file."
   :ensure t
   :init (doom-modeline-mode 1))
 ;; (load (expand-file-name "custom-modeline.el" user-emacs-directory) t t)
+
+;;; ------------------------------------------------------------
+;;; agent-shell - Native Emacs buffer for LLM agents via ACP
+;;; ------------------------------------------------------------
+(use-package shell-maker :straight t)
+
+(use-package acp :straight t)
+
+(use-package agent-shell
+  :straight t
+  :config
+  ;; :none t = no API key injected; opencode handles auth itself
+  (setq agent-shell-opencode-authentication
+        (agent-shell-opencode-make-authentication :none t))
+  ;; Set OpenCode as the default for M-x agent-shell
+  (setq agent-shell-preferred-agent-config
+        (agent-shell-opencode-make-agent-config)))
+
+(defun ss/agent-shell-dot-subdir (subdir)
+  (let* ((cwd (string-remove-suffix "/" (agent-shell-cwd)))
+         (sanitized (replace-regexp-in-string "/" "-" (string-remove-prefix "/" cwd))))
+    (expand-file-name subdir (locate-user-emacs-file (concat "agent-shell/" sanitized)))))
+
+(setopt agent-shell-dot-subdir-function #'ss/agent-shell-dot-subdir)
 
 (provide 'init)
 ;;; init.el ends here

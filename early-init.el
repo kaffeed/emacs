@@ -12,7 +12,6 @@
 
 ;; Disable package.el to use straight.el instead.
 (setq package-enable-at-startup nil)
-(setenv "LSP_USE_PLISTS" "true")
 
 ;; Disables unused UI Elements early to avoid flickering
 (push '(menu-bar-lines . 0) default-frame-alist)

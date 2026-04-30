@@ -588,62 +588,139 @@ Otherwise, opens in the directory of the current file."
   (projectile-git-command "git ls-files -zco --exclude-standard"))
 
 ;;; ------------------------------------------------------------
-;;; Company (Completion)
+;;; Perspective - Named workspaces with isolated buffer lists
+;;; ------------------------------------------------------------
+;; Each perspective is a named workspace with its own buffer list
+;; and window layout. Projectile integration auto-creates a
+;; perspective whenever you switch to a project.
+
+(use-package perspective
+  :demand t
+  :custom
+  ;; Workspace commands under C-c x
+  (persp-mode-prefix-key (kbd "C-c x"))
+  ;; Where to save/restore workspace state
+  (persp-state-default-file (expand-file-name "persp-state" user-emacs-directory))
+  ;; Show perspective name in the modeline
+  (persp-show-modestring t)
+  :init
+  (persp-mode)
+  :config
+  ;; Persist workspaces on exit, restore after init
+  (add-hook 'kill-emacs-hook #'persp-state-save)
+  (add-hook 'after-init-hook
+            (lambda ()
+              (when (file-exists-p persp-state-default-file)
+                (persp-state-load persp-state-default-file))))
+
+  ;; ibuffer: group buffers by perspective on every open
+  (defun ss/ibuffer-set-persp-filter-groups ()
+    "Set ibuffer filter groups based on active perspectives."
+    (setq ibuffer-filter-groups
+          (append
+           ;; One group per perspective, containing exactly its buffers
+           (mapcar (lambda (name)
+                     (let* ((persp (persp-get-by-name name))
+                            (buf-names (mapcar #'buffer-name (persp-buffers persp))))
+                       (list name
+                             `(predicate . (member (buffer-name) ',buf-names)))))
+                   (persp-names))
+           ;; Catch-all for buffers not in any perspective
+           '(("Other" (name . ".*")))))
+    (ibuffer-update nil t))
+
+  (add-hook 'ibuffer-hook #'ss/ibuffer-set-persp-filter-groups)
+
+  ;; consult-buffer: scope to current perspective by default
+  ;; persp-consult-source is provided by perspective.el
+  (with-eval-after-load 'consult
+    (add-to-list 'consult-buffer-sources 'persp-consult-source 'append)
+    ;; Make perspective source appear first
+    (setq consult-buffer-sources
+          (cons 'persp-consult-source
+                (delq 'persp-consult-source consult-buffer-sources)))))
+
+;; persp-projectile: switch project → auto-create/switch perspective
+(use-package persp-projectile
+  :after (perspective projectile)
+  :bind (:map projectile-command-map
+              ;; C-c p x: switch project with workspace awareness
+              ("x" . projectile-persp-switch-project)
+              ;; Keep C-c p p but also make it workspace-aware
+              ("p" . projectile-persp-switch-project)))
+
+;;; ------------------------------------------------------------
+;;; Corfu (In-buffer Completion)
 ;;; ------------------------------------------------------------
 
-;; Company: Modern completion framework
-;; Chosen over alternatives (corfu, auto-complete) for:
-;; - Mature, well-tested codebase
-;; - Excellent backend support (LSP, dabbrev, files, etc.)
-;; - Works seamlessly with LSP mode
-(use-package company
-  :init
-  (global-company-mode)
-
+;; Corfu: Fast, minimal in-buffer completion popup
+;; Uses Emacs' built-in completion-at-point (capf) infrastructure.
+;; Works natively with eglot, yasnippet-capf, and cape backends.
+(use-package corfu
   :custom
-  ;; Make Company less intrusive and more like modern IDE autocomplete
-  (company-idle-delay 0.05)        ;; fast popup
-  (company-minimum-prefix-length 1)
-  (company-tooltip-align-annotations t)
-  (company-tooltip-limit 12)
-  (company-tooltip-minimum-width 40)
-  (company-show-numbers t)
-  (company-require-match nil)
-  (company-dabbrev-other-buffers t)
-  (company-dabbrev-downcase nil)
-
+  (corfu-auto t)                ;; Enable auto-completion popup
+  (corfu-auto-delay 0.05)       ;; Show popup quickly
+  (corfu-auto-prefix 1)         ;; Start completing after 1 character
+  (corfu-cycle t)               ;; Allow cycling through candidates
+  (corfu-quit-no-match 'separator) ;; Quit if no match after separator
+  (corfu-preselect 'prompt)     ;; Keep original input pre-selected
   :bind
-  (:map company-active-map
-        ("<tab>" . company-complete-selection)
-        ("TAB"   . company-complete-selection)
-        ("C-n"   . company-select-next)
-        ("C-p"   . company-select-previous))
+  (:map corfu-map
+        ("TAB"   . corfu-next)
+        ("<tab>" . corfu-next)
+        ("S-TAB" . corfu-previous)
+        ("<backtab>" . corfu-previous)
+        ("RET"   . corfu-insert)
+        ("C-n"   . corfu-next)
+        ("C-p"   . corfu-previous))
+  :init
+  (global-corfu-mode))
 
+;; Cape: Completion-at-Point Extensions
+;; Provides additional capf backends (dabbrev, file, keyword, etc.)
+;; and adapters for yasnippet. Enhances corfu's completion sources.
+(use-package cape
+  :init
+  ;; Add cape backends to completion-at-point-functions globally
+  (add-hook 'completion-at-point-functions #'cape-dabbrev)
+  (add-hook 'completion-at-point-functions #'cape-file)
+  (add-hook 'completion-at-point-functions #'cape-keyword)
   :config
-  (company-tng-mode)
-  ;; Good backends for general programming
-  ;; Integrate yasnippet with company for LSP completions
-  (setq company-backends
-        '((company-capf :with company-yasnippet) ;; LSP + snippets together
-           company-dabbrev-code                   ;; fallback for code-like text
-          company-dabbrev))                       ;; fallback for everything else
-  )
+  ;; Silence irrelevant messages from cape-dabbrev
+  (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-silent)
+  (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-purify))
 
-;; Flycheck: Modern syntax checking
-;; Preferred over built-in flymake for:
-;; - Better LSP integration
-;; - More checker support (eslint, pylint, etc.)
-;; - Cleaner error reporting
-(use-package flycheck
+;; Prescient: Smart sorting and filtering based on history
+;; Learns from your completion choices and surfaces frequent items first.
+(use-package prescient
   :config
-  (add-hook 'prog-mode-hook 'flycheck-mode) ;; always lint my code
-  (add-hook 'after-init-hook #'global-flycheck-mode))
+  (prescient-persist-mode 1))   ;; Persist history across sessions
 
-(use-package flycheck-posframe
-  :ensure t
-  :after flycheck
+(use-package corfu-prescient
+  :after (corfu prescient)
   :config
-  (add-hook 'flycheck-mode-hook #'flycheck-posframe-mode))
+  (corfu-prescient-mode 1))
+
+;; Nerd-icons for corfu: icons in completion popup
+(use-package nerd-icons-corfu
+  :after corfu
+  :config
+  (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
+
+;; Flymake: Built-in on-the-fly syntax checking
+;; Eglot automatically enables flymake in managed buffers.
+;; We also enable it globally for prog-mode buffers.
+(use-package flymake
+  :straight (:type built-in)
+  :hook (prog-mode . flymake-mode)
+  :bind (:map flymake-mode-map
+              ("M-n" . flymake-goto-next-error)
+              ("M-p" . flymake-goto-prev-error)
+              ("C-c ! l" . flymake-show-buffer-diagnostics)
+              ("C-c ! L" . flymake-show-project-diagnostics))
+  :custom
+  (flymake-no-changes-timeout 0.5)
+  (flymake-fringe-indicator-position 'right-fringe))
 
 ;; Yasnippet: Template system for code snippets
 ;; Dramatically improves coding speed with pre-defined templates
@@ -656,6 +733,26 @@ Otherwise, opens in the directory of the current file."
 ;; Yasnippet-snippets: Collection of snippets for many languages
 (use-package yasnippet-snippets
   :after yasnippet)
+
+;;; ------------------------------------------------------------
+;;; Apheleia - Async code formatting (no cursor jump)
+;;; ------------------------------------------------------------
+;; Runs formatters asynchronously after save.
+;; Only applies changes if the buffer is unmodified, preventing
+;; latency and cursor jumps.  Works alongside eglot formatting.
+(use-package apheleia
+  :config
+  (apheleia-global-mode +1)
+  ;; Override formatter selections for languages we use
+  (setf (alist-get 'typescript-ts-mode apheleia-mode-alist) 'prettier-typescript)
+  (setf (alist-get 'tsx-ts-mode apheleia-mode-alist) 'prettier-typescript)
+  (setf (alist-get 'js-ts-mode apheleia-mode-alist) 'prettier-javascript)
+  (setf (alist-get 'css-ts-mode apheleia-mode-alist) 'prettier-css)
+  (setf (alist-get 'json-ts-mode apheleia-mode-alist) 'prettier-json)
+  (setf (alist-get 'yaml-ts-mode apheleia-mode-alist) 'prettier-yaml)
+  (setf (alist-get 'go-mode apheleia-mode-alist) 'gofmt)
+  (setf (alist-get 'go-ts-mode apheleia-mode-alist) 'gofmt)
+  (setf (alist-get 'csharp-mode apheleia-mode-alist) 'csharpier))
 
 ;;; ------------------------------------------------------------
 ;;; Tree-sitter - Native syntax highlighting and code parsing
@@ -699,7 +796,7 @@ Otherwise, opens in the directory of the current file."
 ;;; Lsp
 ;;; ------------------------------------------------------------
 
-(load (expand-file-name "lsp-config.el" user-emacs-directory))
+(load (expand-file-name "eglot-config.el" user-emacs-directory))
 
 (use-package which-key :config (which-key-mode))
 
@@ -749,6 +846,7 @@ Otherwise, opens in the directory of the current file."
 ;;; ------------------------------------------------------------
 ;;; Misc packages
 ;;; ------------------------------------------------------------
+
 (use-package opencode
   :straight (opencode :type git :host codeberg :repo "sczi/opencode.el"))
 
@@ -763,16 +861,104 @@ Otherwise, opens in the directory of the current file."
   :mode ("Dockerfile\\'" "\\.dockerfile\\'"))
 
 ;;; ------------------------------------------------------------
-;;; Undo-tree - Visual undo/redo with branching history
+;;; dumb-jump - Go-to-definition fallback (no language server needed)
 ;;; ------------------------------------------------------------
-;; Undo-tree makes Emacs' powerful undo system visual and intuitive
-;; Shows undo history as a tree structure you can navigate
-
-(use-package undo-tree
+;; Uses ripgrep/grep heuristics for 50+ languages.
+;; Plugs into xref so it integrates seamlessly with eglot:
+;; eglot takes priority when active; dumb-jump is the fallback.
+(use-package dumb-jump
   :config
-  (global-undo-tree-mode)
-  :bind ("C-x u" . undo-tree-visualize)
-  :diminish undo-tree-mode)
+  (add-hook 'xref-backend-functions #'dumb-jump-xref-activate)
+  :custom
+  (dumb-jump-prefer-searcher 'rg)
+  (dumb-jump-selector 'completing-read))
+
+;;; ------------------------------------------------------------
+;;; indent-bars - Visual indentation guides
+;;; ------------------------------------------------------------
+(use-package indent-bars
+  :straight (indent-bars :type git :host github :repo "jdtsmith/indent-bars")
+  :hook ((prog-mode yaml-ts-mode) . indent-bars-mode)
+  :custom
+  (indent-bars-treesit-support t)
+  (indent-bars-no-descend-string t)
+  (indent-bars-width-frac 0.2)
+  (indent-bars-pad-frac 0.1))
+
+;;; ------------------------------------------------------------
+;;; dtrt-indent - Auto-detect indentation style per file
+;;; ------------------------------------------------------------
+(use-package dtrt-indent
+  :hook (prog-mode . dtrt-indent-mode)
+  :custom
+  (dtrt-indent-verbosity 0))
+
+;;; ------------------------------------------------------------
+;;; gcmh - Garbage Collector Magic Hack
+;;; ------------------------------------------------------------
+;; Raises GC threshold during active use, collects at idle.
+;; Free performance improvement with no downside.
+(use-package gcmh
+  :config
+  (gcmh-mode 1)
+  :custom
+  (gcmh-idle-delay 5)
+  (gcmh-high-cons-threshold (* 256 1024 1024)))
+
+;;; ------------------------------------------------------------
+;;; git-modes - Syntax for .gitignore, .gitconfig, .gitattributes
+;;; ------------------------------------------------------------
+(use-package git-modes)
+
+;;; ------------------------------------------------------------
+;;; aggressive-indent - Auto-indent as you type (Elisp focused)
+;;; ------------------------------------------------------------
+(use-package aggressive-indent
+  :hook (emacs-lisp-mode . aggressive-indent-mode)
+  :diminish aggressive-indent-mode)
+
+;;; ------------------------------------------------------------
+;;; markdown-mode
+;;; ------------------------------------------------------------
+(use-package markdown-mode
+  :mode (("README\\.md\\'" . gfm-mode)
+         ("\\.md\\'" . markdown-mode)
+         ("\\.markdown\\'" . markdown-mode))
+  :custom
+  (markdown-command "pandoc")
+  (markdown-fontify-code-blocks-natively t))
+
+;;; ------------------------------------------------------------
+;;; eat - Terminal emulator (pure Elisp, works on Windows)
+;;; ------------------------------------------------------------
+(use-package eat
+  :straight (:type git :host codeberg :repo "akib/emacs-eat"
+                   :files ("*.el" ("term" "term/*.el") "*.texi"
+                           "*.ti" ("terminfo/e" "terminfo/e/*")
+                           ("terminfo/65" "terminfo/65/*")
+                           ("integration" "integration/*")
+                           (:exclude ".dir-locals.el" "*-tests.el")))
+  :bind (("C-c T" . eat)
+         ("C-c C-t" . eat-project))
+  :custom
+  (eat-kill-buffer-on-exit t))
+
+;;; ------------------------------------------------------------
+;;; Undo-fu - Sane linear undo/redo with persistent session history
+;;; ------------------------------------------------------------
+;; undo-fu provides a simpler linear undo/redo on top of Emacs' undo.
+;; undo-fu-session persists undo history across restarts per file.
+
+(use-package undo-fu
+  :bind (("C-/" . undo-fu-only-undo)
+         ("C-S-/" . undo-fu-only-redo)
+         ("C-x u" . undo-fu-only-undo)))
+
+(use-package undo-fu-session
+  :after undo-fu
+  :config
+  (setq undo-fu-session-incompatible-files '("/COMMIT_EDITMSG\\'" "/git-rebase-todo\\'"))
+  (undo-fu-session-global-mode))
 
 (use-package ace-window
   :bind (("M-o" . ace-window))
@@ -863,12 +1049,6 @@ Otherwise, opens in the directory of the current file."
 ;; Great for backend development and API testing
 (use-package restclient
   :mode ("\\.http\\'" . restclient-mode))
-
-;; Company backend for restclient
-(use-package company-restclient
-  :after (company restclient)
-  :config
-  (add-to-list 'company-backends 'company-restclient))
 
 ;;; ------------------------------------------------------------
 ;;; PDF Viewing

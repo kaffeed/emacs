@@ -420,6 +420,9 @@ Otherwise, opens in the directory of the current file."
   (when (memq window-system '(mac ns x))
     (exec-path-from-shell-initialize)))
 
+(use-package dotenv-mode
+  :mode ("\\.env\\'" "\\.env\\..*\\'" ".*\\.env\\'"))
+
 ;;; ------------------------------------------------------------
 ;;; Recentf - Track and quickly access recently opened files
 ;;; ------------------------------------------------------------
@@ -572,8 +575,7 @@ Otherwise, opens in the directory of the current file."
   :bind-keymap
   ("C-c p" . projectile-command-map)
   :init
-  (when (file-directory-p "~/source")
-    (setq projectile-project-search-path '("~/source" . 1)))
+  (setq projectile-project-search-path '(("~/source/work" . 1) ("~/source/personal" . 1)))
   (setq projectile-switch-project-action #'projectile-find-file)
   :custom
   ;; Use hybrid indexing: git for git projects, native for others
@@ -608,10 +610,10 @@ Otherwise, opens in the directory of the current file."
   :config
   ;; Persist workspaces on exit, restore after init
   (add-hook 'kill-emacs-hook #'persp-state-save)
-  (add-hook 'after-init-hook
-            (lambda ()
-              (when (file-exists-p persp-state-default-file)
-                (persp-state-load persp-state-default-file))))
+  ;; (add-hook 'after-init-hook
+  ;;           (lambda ()
+  ;;             (when (file-exists-p persp-state-default-file)
+  ;;               (persp-state-load persp-state-default-file))))
 
   ;; ibuffer: group buffers by perspective on every open
   (defun ss/ibuffer-set-persp-filter-groups ()
@@ -793,6 +795,25 @@ Otherwise, opens in the directory of the current file."
 (add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . yaml-ts-mode))
 
 ;;; ------------------------------------------------------------
+;;; Web Mode (Razor / CSHTML)
+;;; ------------------------------------------------------------
+;; web-mode handles mixed HTML + embedded language files.
+;; Used here for Razor syntax (.cshtml MVC/Razor Pages, .razor Blazor).
+;; Requires rzls (Razor Language Server) for full IntelliSense:
+;;   dotnet tool install -g rzls
+(use-package web-mode
+  :mode ("\\.cshtml\\'" "\\.razor\\'")
+  :hook (web-mode . (lambda ()
+                      (setq-local web-mode-engine "razor")))
+  :custom
+  (web-mode-markup-indent-offset 2)
+  (web-mode-code-indent-offset 4)
+  (web-mode-css-indent-offset 2)
+  (web-mode-enable-auto-pairing t)
+  (web-mode-enable-css-colorization t)
+  (web-mode-enable-current-element-highlight t))
+
+;;; ------------------------------------------------------------
 ;;; Lsp
 ;;; ------------------------------------------------------------
 
@@ -941,7 +962,8 @@ Otherwise, opens in the directory of the current file."
   :bind (("C-c T" . eat)
          ("C-c C-t" . eat-project))
   :custom
-  (eat-kill-buffer-on-exit t))
+  (eat-kill-buffer-on-exit t)
+  (eat-shell "pwsh"))
 
 ;;; ------------------------------------------------------------
 ;;; Undo-fu - Sane linear undo/redo with persistent session history

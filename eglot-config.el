@@ -32,7 +32,8 @@
    (css-ts-mode          . eglot-ensure)
    (json-mode            . eglot-ensure)
    (json-ts-mode         . eglot-ensure)
-   (yaml-ts-mode         . eglot-ensure))
+   (yaml-ts-mode         . eglot-ensure)
+   (web-mode             . eglot-ensure))
 
   :bind
   (:map eglot-mode-map
@@ -54,7 +55,7 @@
   ;; Don't litter the modeline with eglot server name
   (eglot-autoshutdown t)
   ;; Use eldoc echo area (consistent with previous lsp-mode setup)
-  (eldoc-display-functions '(eldoc-display-in-echo-area))
+  ;; (eldoc-display-functions '(eldoc-display))
   ;; Boost performance: don't log events unless debugging
   (eglot-events-buffer-size 0)
   ;; Don't confirm when applying code actions
@@ -86,28 +87,35 @@
   (add-to-list 'eglot-server-programs
                `(yaml-ts-mode . ("yaml-language-server" "--stdio")))
 
+  ;; Razor Language Server for .cshtml (MVC/Razor Pages) and .razor (Blazor)
+  ;; Requires: dotnet tool install -g rzls
+  ;; rzls communicates with the Roslyn LSP server automatically via named pipe
+  ;; when both are installed as dotnet global tools.
+  (add-to-list 'eglot-server-programs
+               '(web-mode . ("rzls" "--logLevel" "Information")))
+
   ;; Pass YAML schema settings via workspace configuration
   (setq-default eglot-workspace-configuration
                 '(:yaml
                   (:validate t
-                   :hover t
-                   :completion t
-                   :format (:enable t)
-                   :schemas
-                   (:https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.31.0-standalone-strict/all.json
-                    ["/*.k8s.yaml" "/*.k8s.yml" "/kubernetes/**/*.yaml" "/k8s/**/*.yaml" "/manifests/**/*.yaml"]
-                    :https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json
-                    ["docker-compose.yaml" "docker-compose.yml" "compose.yaml" "compose.yml"]
-                    :https://json.schemastore.org/github-workflow.json
-                    [".github/workflows/*.yaml" ".github/workflows/*.yml"]
-                    :https://json.schemastore.org/github-action.json
-                    ["action.yaml" "action.yml"]
-                    :https://json.schemastore.org/chart.json
-                    ["Chart.yaml" "Chart.yml"]
-                    :https://json.schemastore.org/pre-commit-config.json
-                    [".pre-commit-config.yaml"]
-                    :https://gitlab.com/gitlab-org/gitlab/-/raw/master/app/assets/javascripts/editor/schema/ci.json
-                    [".gitlab-ci.yml" ".gitlab-ci.yaml"]))))
+                             :hover t
+                             :completion t
+                             :format (:enable t)
+                             :schemas
+                             (:https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.31.0-standalone-strict/all.json
+                              ["/*.k8s.yaml" "/*.k8s.yml" "/kubernetes/**/*.yaml" "/k8s/**/*.yaml" "/manifests/**/*.yaml"]
+                              :https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json
+                              ["docker-compose.yaml" "docker-compose.yml" "compose.yaml" "compose.yml"]
+                              :https://json.schemastore.org/github-workflow.json
+                              [".github/workflows/*.yaml" ".github/workflows/*.yml"]
+                              :https://json.schemastore.org/github-action.json
+                              ["action.yaml" "action.yml"]
+                              :https://json.schemastore.org/chart.json
+                              ["Chart.yaml" "Chart.yml"]
+                              :https://json.schemastore.org/pre-commit-config.json
+                              [".pre-commit-config.yaml"]
+                              :https://gitlab.com/gitlab-org/gitlab/-/raw/master/app/assets/javascripts/editor/schema/ci.json
+                              [".gitlab-ci.yml" ".gitlab-ci.yaml"]))))
 
   ;; Integrate yasnippet with eglot via cape
   (defun ss/eglot-capf ()
@@ -122,6 +130,25 @@
 ;; Yasnippet capf adapter - bridges yasnippet into capf/corfu
 (use-package yasnippet-capf
   :after (yasnippet cape))
+
+;;; ------------------------------------------------------------
+;;; consult-eglot - Workspace Symbol Browser
+;;; ------------------------------------------------------------
+;; Provides consult-eglot-symbols: fuzzy/orderless search over all
+;; workspace symbols via LSP workspace/symbol request, displayed
+;; through the Vertico/Consult interface.
+;;
+;; Keybindings:
+;;   M-s M-s  — browse workspace symbols (global, alongside other M-s consult bindings)
+;;   C-c l /  — xref-find-apropos (built-in fallback, active in eglot-managed buffers)
+
+(use-package consult-eglot
+  :straight t
+  :after (eglot consult)
+  :bind
+  ("M-s M-s" . consult-eglot-symbols)
+  (:map eglot-mode-map
+        ("C-c l /" . xref-find-apropos)))
 
 ;;; ------------------------------------------------------------
 ;;; Dape - Debug Adapter Protocol (eglot-compatible)
@@ -175,11 +202,11 @@
                  :request "launch"
                  :name "Launch .NET Core"
                  :program (lambda ()
-                             (read-file-name "Select DLL: "
-                                             (when (fboundp 'projectile-project-root)
-                                               (projectile-project-root))
-                                             nil t nil
-                                             (lambda (n) (string-match-p "\\.dll$" n))))
+                            (read-file-name "Select DLL: "
+                                            (when (fboundp 'projectile-project-root)
+                                              (projectile-project-root))
+                                            nil t nil
+                                            (lambda (n) (string-match-p "\\.dll$" n))))
                  :cwd (lambda ()
                         (or (when (fboundp 'projectile-project-root)
                               (projectile-project-root))

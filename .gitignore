@@ -49,3 +49,11 @@ forge-database.sqlite
 # Undo-tree history files
 *~undo-tree~
 *.eld
+
+# Lock and auto-save files
+.#*
+#*#
+
+# Local state / custom settings
+/.local/
+custom.el

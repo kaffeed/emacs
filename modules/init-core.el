@@ -23,6 +23,13 @@
 (setq straight-use-package-by-default t
       use-package-verbose nil)
 
+;; Force straight to use built-in versions of core packages to prevent conflicts
+(use-package project :straight (:type built-in))
+(use-package xref :straight (:type built-in))
+(use-package eldoc :straight (:type built-in))
+(use-package seq :straight (:type built-in))
+(use-package map :straight (:type built-in))
+
 (defconst *is-a-linux* (eq system-type 'gnu/linux))
 (defconst *is-a-windoof* (eq system-type 'windows-nt))
 

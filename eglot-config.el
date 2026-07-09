@@ -33,6 +33,7 @@
    (json-mode            . eglot-ensure)
    (json-ts-mode         . eglot-ensure)
    (yaml-ts-mode         . eglot-ensure)
+   (astro-ts-mode        . eglot-ensure)
    (web-mode             . eglot-ensure))
 
   :bind
@@ -60,6 +61,7 @@
   (eglot-events-buffer-size 0)
   ;; Don't confirm when applying code actions
   (eglot-confirm-server-initiated-edits nil)
+  (eglot-inlay-hints-mode nil)
 
   :config
   ;; Angular Language Server
@@ -93,6 +95,11 @@
   ;; when both are installed as dotnet global tools.
   (add-to-list 'eglot-server-programs
                '(web-mode . ("rzls" "--logLevel" "Information")))
+
+  ;; Astro Language Server
+  ;; Requires: npm i -g @astrojs/language-server
+  (add-to-list 'eglot-server-programs
+               '(astro-ts-mode . ("astro-ls" "--stdio")))
 
   ;; Pass YAML schema settings via workspace configuration
   (setq-default eglot-workspace-configuration

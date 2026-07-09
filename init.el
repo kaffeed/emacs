@@ -21,6 +21,8 @@
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
+;; Require treesit early to prevent void-function treesit-ready-p errors from autoloads
+(require 'treesit)
 (straight-use-package 'use-package)
 
 
@@ -761,6 +763,8 @@ Otherwise, opens in the directory of the current file."
 ;;; ------------------------------------------------------------
 ;; Uses Emacs 29+ built-in treesit integration with native *-ts-mode major modes
 
+(require 'treesit)
+(setq treesit-font-lock-level 4)
 (setq treesit-language-source-alist
       '((bash "https://github.com/tree-sitter/tree-sitter-bash" "v0.23.3")
         (cmake "https://github.com/uyha/tree-sitter-cmake")
@@ -774,6 +778,7 @@ Otherwise, opens in the directory of the current file."
         (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
         (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
         (yaml "https://github.com/tree-sitter-grammars/tree-sitter-yaml" "v0.6.1")
+        (astro "https://github.com/virchau13/tree-sitter-astro")
         ))
 
 ;; Automatically install missing tree-sitter grammars
@@ -792,8 +797,8 @@ Otherwise, opens in the directory of the current file."
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . tsx-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.ts\\'" . typescript-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.jsx\\'" . tsx-ts-mode))
-(add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . yaml-ts-mode))
-
+(add-to-list 'auto-mode-alist '("\\.yaml\\'" . yaml-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.xaml\\'" . nxml-mode))
 ;;; ------------------------------------------------------------
 ;;; Web Mode (Razor / CSHTML)
 ;;; ------------------------------------------------------------
@@ -812,6 +817,12 @@ Otherwise, opens in the directory of the current file."
   (web-mode-enable-auto-pairing t)
   (web-mode-enable-css-colorization t)
   (web-mode-enable-current-element-highlight t))
+
+;;; ------------------------------------------------------------
+;;; Astro Mode
+;;; ------------------------------------------------------------
+(use-package astro-ts-mode
+  :mode "\\.astro\\'")
 
 ;;; ------------------------------------------------------------
 ;;; Lsp
@@ -1160,10 +1171,12 @@ Otherwise, opens in the directory of the current file."
 ;; Uncomment the next line to enable:
 ;; (add-hook 'before-save-hook 'delete-trailing-whitespace)
 
-
-
 ;;; ------------------------------------------------------------
 ;;; Custom Modeline
+
+(use-package all-the-icons
+  :straight t
+  :if (display-graphic-p))
 
 (use-package nerd-icons
   :straight t
@@ -1198,6 +1211,18 @@ Otherwise, opens in the directory of the current file."
     (expand-file-name subdir (locate-user-emacs-file (concat "agent-shell/" sanitized)))))
 
 (setopt agent-shell-dot-subdir-function #'ss/agent-shell-dot-subdir)
+
+;;; ------------------------------------------------------------
+;;; Compilation
+;;; ------------------------------------------------------------
+
+(require 'ansi-color)
+(add-hook 'compilation-filter-hook #'ansi-color-compilation-filter)
+
+(with-eval-after-load 'compile
+  (add-to-list 'compilation-error-regexp-alist-alist
+               '(nextjs "^[ \t]*\\([^ \t\n\r:]+\\.[tj]sx?\\):\\([0-9]+\\):\\([0-9]+\\)" 1 2 3))
+  (add-to-list 'compilation-error-regexp-alist 'nextjs))
 
 (provide 'init)
 ;;; init.el ends here

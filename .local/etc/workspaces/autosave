@@ -1,0 +1,48 @@
+;; -*- mode: emacs-lisp; eval: (progn (pp-buffer) (indent-buffer)) -*-
+((def-persp nil nil
+            (def-wconf
+             (((min-height . 4) (min-width . 10) (min-height-ignore . 2)
+               (min-width-ignore . 4) (min-height-safe . 1) (min-width-safe . 2)
+               (min-pixel-height . 64) (min-pixel-width . 80)
+               (min-pixel-height-ignore . 32) (min-pixel-width-ignore . 32)
+               (min-pixel-height-safe . 16) (min-pixel-width-safe . 16))
+              leaf (pixel-width . 656) (pixel-height . 560) (total-width . 82)
+              (total-height . 35) (normal-height . 1.0) (normal-width . 1.0)
+              (buffer "*scratch*" (selected . t) (hscroll . 0)
+                      (fringes 8 8 nil nil) (margins nil)
+                      (scroll-bars nil 0 t nil 0 t nil) (vscroll . 0)
+                      (dedicated) (point . 1) (start . 1))))
+            (def-params nil) t nil t)
+ (def-persp "emacs"
+            ((def-buffer ".config" "c:/Users/s.schubert/.config/" dired-mode)
+             (def-buffer ".doom" "c:/Users/s.schubert/.config/emacs/.doom"
+                         lisp-data-mode))
+            (def-wconf
+             (((min-height . 4) (min-width . 10) (min-height-ignore . 3)
+               (min-width-ignore . 3) (min-height-safe . 1) (min-width-safe . 2)
+               (min-pixel-height . 64) (min-pixel-width . 80)
+               (min-pixel-height-ignore . 48) (min-pixel-width-ignore . 24)
+               (min-pixel-height-safe . 16) (min-pixel-width-safe . 16))
+              leaf (pixel-width . 2560) (pixel-height . 1329)
+              (total-width . 320) (total-height . 83) (normal-height . 1.0)
+              (normal-width . 1.0)
+              (parameters
+               (better-jumper-struct
+                . #s(better-jumper-jump-list-struct
+                     (0 0
+                        . [nil nil nil nil nil nil nil nil nil nil nil nil nil
+                               nil nil nil nil nil nil nil nil nil nil nil nil
+                               nil nil nil nil nil nil nil nil nil nil nil nil
+                               nil nil nil nil nil nil nil nil nil nil nil nil
+                               nil nil nil nil nil nil nil nil nil nil nil nil
+                               nil nil nil nil nil nil nil nil nil nil nil nil
+                               nil nil nil nil nil nil nil nil nil nil nil nil
+                               nil nil nil nil nil nil nil nil nil nil nil nil
+                               nil nil nil])
+                     -1)))
+              (buffer ".config" (selected . t) (hscroll . 0)
+                      (fringes 3 1 nil nil) (margins nil)
+                      (scroll-bars nil 0 t nil 0 t nil) (vscroll . 0)
+                      (dedicated) (point . 157) (start . 1))
+              (prev-buffers (".doom" 1 1) ("*scratch*" 1 1))))
+            (def-params nil) nil nil nil))

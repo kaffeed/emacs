@@ -48,3 +48,4 @@ forge-database.sqlite
 
 # Undo-tree history files
 *~undo-tree~
+*.eld

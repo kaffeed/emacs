@@ -99,7 +99,9 @@
   ;; Astro Language Server
   ;; Requires: npm i -g @astrojs/language-server
   (add-to-list 'eglot-server-programs
-               '(astro-ts-mode . ("astro-ls" "--stdio")))
+               '(astro-ts-mode . ("astro-ls" "--stdio"
+                                  :initializationOptions
+                                  (:typescript (:tsdk "node_modules/typescript/lib")))))
 
   ;; Pass YAML schema settings via workspace configuration
   (setq-default eglot-workspace-configuration

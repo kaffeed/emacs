@@ -11,19 +11,6 @@
   (setq undo-fu-session-incompatible-files '("/COMMIT_EDITMSG\\'" "/git-rebase-todo\\'"))
   (undo-fu-session-global-mode))
 
-(use-package apheleia
-  :config
-  (apheleia-global-mode +1)
-  (setf (alist-get 'typescript-ts-mode apheleia-mode-alist) 'prettier-typescript)
-  (setf (alist-get 'tsx-ts-mode apheleia-mode-alist) 'prettier-typescript)
-  (setf (alist-get 'js-ts-mode apheleia-mode-alist) 'prettier-javascript)
-  (setf (alist-get 'css-ts-mode apheleia-mode-alist) 'prettier-css)
-  (setf (alist-get 'json-ts-mode apheleia-mode-alist) 'prettier-json)
-  (setf (alist-get 'yaml-ts-mode apheleia-mode-alist) 'prettier-yaml)
-  (setf (alist-get 'go-mode apheleia-mode-alist) 'gofmt)
-  (setf (alist-get 'go-ts-mode apheleia-mode-alist) 'gofmt)
-  (setf (alist-get 'csharp-mode apheleia-mode-alist) 'csharpier))
-
 (use-package dtrt-indent
   :hook (prog-mode . dtrt-indent-mode)
   :custom

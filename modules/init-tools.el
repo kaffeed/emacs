@@ -98,33 +98,6 @@ Otherwise, opens in the directory of the current file."
   :config
   (pdf-tools-install :no-query))
 
-(use-package ement
-  :straight (:type git :host github :repo "alphapapa/ement.el"))
-
-(use-package devdocs
-  :straight (:type git :host github :repo "astoff/devdocs.el")
-  :bind (("C-c m" . devdocs-lookup)
-         ("C-c M" . devdocs-install))
-  :custom
-  (devdocs-data-dir (expand-file-name "devdocs" user-emacs-directory))
-  :config
-  (add-hook 'python-mode-hook
-            (lambda () (setq-local devdocs-current-docs '("python~3.12"))))
-  (add-hook 'js-mode-hook
-            (lambda () (setq-local devdocs-current-docs '("javascript" "node"))))
-  (add-hook 'js-ts-mode-hook
-            (lambda () (setq-local devdocs-current-docs '("javascript" "node"))))
-  (add-hook 'typescript-ts-mode-hook
-            (lambda () (setq-local devdocs-current-docs '("typescript" "node"))))
-  (add-hook 'tsx-ts-mode-hook
-            (lambda () (setq-local devdocs-current-docs '("react" "next.js" "typescript" "node"))))
-  (add-hook 'csharp-mode-hook
-            (lambda () (setq-local devdocs-current-docs '("dotnet~8.0"))))
-  (add-hook 'go-mode-hook
-            (lambda () (setq-local devdocs-current-docs '("go"))))
-  (add-hook 'emacs-lisp-mode-hook
-            (lambda () (setq-local devdocs-current-docs '("elisp")))))
-
 (use-package shell-maker :straight t)
 
 (use-package acp :straight t)

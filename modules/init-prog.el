@@ -47,7 +47,7 @@
   (web-mode-enable-current-element-highlight t))
 
 (use-package astro-ts-mode
-  :straight (astro-ts-mode :type git :host github :repo "Sorixelle/astro-ts-mode" :branch "v2.0.2")
+  :straight (astro-ts-mode :type git :host github :repo "Sorixelle/astro-ts-mode" :branch "master")
   :mode "\\.astro\\'")
 
 (use-package flymake

@@ -1,7 +1,14 @@
 ;;; init.el --- Main configuration  -*- lexical-binding: t; -*-
 
-;; Add `modules` directory to `load-path`
-(add-to-list 'load-path (expand-file-name "modules" user-emacs-directory))
+;;; Commentary:
+;; This is the main entry point for the Emacs configuration.
+;; It sets up the load path and bootstraps the modular setup.
+
+;;; Code:
+
+;; Add `modules` directory to `load-path` (at both compile and load time)
+(eval-and-compile
+  (add-to-list 'load-path (expand-file-name "modules" user-emacs-directory)))
 
 ;; Load configuration modules
 (require 'init-core)

@@ -4,7 +4,8 @@ This repository contains a modern Emacs 29+ configuration tailored for software 
 
 ## Core Setup
 - **Package Manager**: `straight.el` with `use-package`.
-- **Initialization**: Split across `early-init.el`, `init.el`, `org-config.el`, and `eglot-config.el`.
+- **Initialization**: A fully modular architecture. `init.el` serves as a bootstrap loader for domain-specific files inside the `modules/` directory (e.g., `init-core.el`, `init-ui.el`, `init-prog.el`).
+- **Debugging & LSP**: Separated into `eglot-config.el` (LSP) and `dape-config.el` (DAP).
 - **Minimum Version**: Emacs 29.1+ (relies on built-in `treesit` and `eglot`).
 
 ## Features & Packages
@@ -22,6 +23,7 @@ This repository contains a modern Emacs 29+ configuration tailored for software 
 ### Development & Languages
 - **Syntax Highlighting**: Built-in tree-sitter (`treesit`) with native major modes (`*-ts-mode`). Auto-installs missing grammars. Supported out-of-the-box: TypeScript, JavaScript, HTML, CSS, JSON, YAML, Go, C#, Astro.
 - **Language Server Protocol (LSP)**: `eglot` (built-in). Pre-configured for C#, Go, TypeScript, HTML/CSS, JSON, YAML, Angular, and Astro.
+- **Debugging (DAP)**: `dape`. Configured for .NET Core (`netcoredbg`), Go (`dlv`), and Node.js/Next.js (`js-debug`).
 - **Diagnostics**: Built-in `flymake`.
 - **Formatting**: `apheleia` (asynchronous, cursor-preserving formatting).
 - **Project Management**: `projectile` combined with `perspective` (`persp-mode`) for isolated, project-aware workspaces.
@@ -42,4 +44,5 @@ This repository contains a modern Emacs 29+ configuration tailored for software 
 
 ## Notes
 - Custom variables are saved to `custom-vars.el`.
-- Language servers must be installed externally (e.g., via `npm` or `dotnet tool`).
+- Language servers and debug adapters must be installed externally (e.g., via `npm` or `dotnet tool`).
+- The `modules/` configuration files are intentionally excluded from `compile-angel` auto-compilation to prevent asynchronous macro expansion issues.

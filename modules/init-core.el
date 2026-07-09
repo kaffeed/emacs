@@ -206,16 +206,34 @@
   (when (memq window-system '(mac ns x))
     (exec-path-from-shell-initialize)))
 
+(setq load-prefer-newer t)
+
 (use-package compile-angel
   :demand t
   :config
   (setq compile-angel-verbose nil)
-  (push "/init.el" compile-angel-excluded-files)
-  (push "/early-init.el" compile-angel-excluded-files)
-  (push "/modules/" compile-angel-excluded-files)
-  (push "/eglot-config.el" compile-angel-excluded-files)
-  (push "/dape-config.el" compile-angel-excluded-files)
-  (push "/org-config.el" compile-angel-excluded-files)
+  
+  (push "/init.el" compile-angel-excluded-path-suffixes)
+  (push "/early-init.el" compile-angel-excluded-path-suffixes)
+  (push "/eglot-config.el" compile-angel-excluded-path-suffixes)
+  (push "/dape-config.el" compile-angel-excluded-path-suffixes)
+  (push "/org-config.el" compile-angel-excluded-path-suffixes)
+
+  (compile-angel-exclude-directory (expand-file-name "modules" user-emacs-directory))
+
+  (with-eval-after-load "savehist"
+    (push (concat "/" (file-name-nondirectory savehist-file))
+          compile-angel-excluded-path-suffixes))
+
+  (with-eval-after-load "recentf"
+    (push (concat "/" (file-name-nondirectory recentf-save-file))
+          compile-angel-excluded-path-suffixes))
+
+  (with-eval-after-load "cus-edit"
+    (when (stringp custom-file)
+      (push (concat "/" (file-name-nondirectory custom-file))
+            compile-angel-excluded-path-suffixes)))
+
   (compile-angel-on-load-mode 1))
 
 (use-package gcmh

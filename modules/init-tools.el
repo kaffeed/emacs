@@ -105,10 +105,15 @@ Otherwise, opens in the directory of the current file."
 (use-package agent-shell
   :straight t
   :config
+  (add-to-list 'exec-path (expand-file-name "~/.local/bin"))
+  (setq agent-shell-antigravity-acp-command '("agy"))
   (setq agent-shell-opencode-authentication
         (agent-shell-opencode-make-authentication :none t))
   (setq agent-shell-preferred-agent-config
-        (agent-shell-opencode-make-agent-config)))
+        (agent-shell-opencode-make-agent-config))
+  ;; Antigravity: launch with M-x agent-shell-antigravity-start-agent
+  (setq agent-shell-antigravity-authentication
+        (agent-shell-antigravity-make-authentication :login t)))
 
 (defun ss/agent-shell-dot-subdir (subdir)
   (let* ((cwd (string-remove-suffix "/" (agent-shell-cwd)))

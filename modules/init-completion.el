@@ -49,7 +49,7 @@
 
 (use-package corfu
   :custom
-  (corfu-auto t)                
+  (corfu-auto t)
   (corfu-auto-delay 0.05)       
   (corfu-auto-prefix 1)         
   (corfu-cycle t)               
@@ -73,8 +73,7 @@
   (add-hook 'completion-at-point-functions #'cape-file)
   (add-hook 'completion-at-point-functions #'cape-keyword)
   :config
-  (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-silent)
-  (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-purify))
+  (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-silent))
 
 (use-package prescient
   :config

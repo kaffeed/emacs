@@ -63,7 +63,7 @@
   (set-selection-coding-system 'utf-8)
   (setq default-buffer-file-coding-system 'utf-8)
   (setq-default bidi-display-reordering 'left-to-right
-		bidi-paragraph-direction 'left-to-right)
+                bidi-paragraph-direction 'left-to-right)
   (setq bidi-inhibit-bpa t)
   (setq redisplay-skip-fontification-on-input t)
   (setq read-process-output-max (* 4 1024 1024))
@@ -145,7 +145,7 @@
           (overlay-put ov 'after-string
                        (propertize str 'face 'font-lock-comment-face))
           (run-with-timer 3 nil (lambda (o) (delete-overlay o)) ov)))))
-  
+
   (setq kill-ring-max 200
         save-interprogram-paste-before-kill t)
 
@@ -166,7 +166,7 @@
     (setq auto-save-list-file-prefix autosave-dir)
     (setq auto-save-file-name-transforms
           `((".*" ,autosave-dir t))))
-          
+
   :bind
   (("C-x C-z" . nil)
    ("C-z" . nil)
@@ -183,19 +183,19 @@
    ("C-x 5 l"  . select-frame-by-name)
    ("C-x 5 s"  . set-frame-name)
    ("RET" . newline-and-indent)
-   ("M-J" . duplicate-dwim)                          
-   ("M-K" . kill-paragraph)                          
-   ("M-Z" . zap-up-to-char)                          
-   ("M-F" . forward-to-word)                         
-   ("M-B" . backward-to-word)                        
-   ("M-M" . end-of-line)                             
-   ("M-T" . transpose-sentences)                     
-   ("C-x M-t" . transpose-paragraphs)                
-   ([remap capitalize-word] . capitalize-dwim)       
-   ([remap downcase-word] . downcase-dwim)           
-   ([remap upcase-word] . upcase-dwim)               
-   ([remap kill-buffer] . kill-current-buffer)       
-   ([remap delete-horizontal-space] . cycle-spacing) 
+   ("M-J" . duplicate-dwim)
+   ("M-K" . kill-paragraph)
+   ("M-Z" . zap-up-to-char)
+   ("M-F" . forward-to-word)
+   ("M-B" . backward-to-word)
+   ("M-M" . end-of-line)
+   ("M-T" . transpose-sentences)
+   ("C-x M-t" . transpose-paragraphs)
+   ([remap capitalize-word] . capitalize-dwim)
+   ([remap downcase-word] . downcase-dwim)
+   ([remap upcase-word] . upcase-dwim)
+   ([remap kill-buffer] . kill-current-buffer)
+   ([remap delete-horizontal-space] . cycle-spacing)
    ("C-<tab>" . next-buffer)
    ("C-S-<tab>" . previous-buffer)
    ("C-c e" . eshell)
@@ -219,7 +219,7 @@
   :demand t
   :config
   (setq compile-angel-verbose nil)
-  
+
   (push "/init.el" compile-angel-excluded-path-suffixes)
   (push "/early-init.el" compile-angel-excluded-path-suffixes)
   (push "/eglot-config.el" compile-angel-excluded-path-suffixes)
@@ -249,6 +249,25 @@
   :custom
   (gcmh-idle-delay 5)
   (gcmh-high-cons-threshold (* 256 1024 1024)))
+
+(setq repeat-keep-prefix t)
+(use-package repeat
+  :init
+  (repeat-mode 1)
+  :config
+  (defvar-keymap my-line-repeat-map
+    :repeat t
+    "n" #'next-line
+    "p" #'previous-line)
+  (defvar-keymap my-word-repeat-map
+    :repeat t
+    "f" #'forward-word
+    "b" #'backward-word)
+  (defvar-keymap my-char-repeat-map
+    :repeat t
+    "f" #'forward-char
+    "b" #'backward-char)
+  )
 
 (require 'ansi-color)
 (add-hook 'compilation-filter-hook #'ansi-color-compilation-filter)

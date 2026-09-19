@@ -78,7 +78,7 @@
   ;; Install: go install github.com/go-delve/delve/cmd/dlv@latest
   (add-to-list 'dape-configs
                `(dlv-launch
-                 modes (go-mode go-ts-mode)
+                 modes (go-ts-mode)
                  command "dlv"
                  command-args ["dap" "--listen" "127.0.0.1::"]
                  :type "go"
@@ -90,7 +90,7 @@
 
   (add-to-list 'dape-configs
                `(dlv-test
-                 modes (go-mode go-ts-mode)
+                 modes (go-ts-mode)
                  command "dlv"
                  command-args ["dap" "--listen" "127.0.0.1::"]
                  :type "go"

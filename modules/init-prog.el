@@ -26,13 +26,16 @@
         (js-mode . js-ts-mode)
         (css-mode . css-ts-mode)
         (json-mode . json-ts-mode)
-        (yaml-mode . yaml-ts-mode)))
+        (yaml-mode . yaml-ts-mode)
+        (go-mode . go-ts-mode)))
 
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . tsx-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.ts\\'" . typescript-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.jsx\\'" . tsx-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.yaml\\'" . yaml-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.xaml\\'" . nxml-mode))
+(add-to-list 'auto-mode-alist '("\\.go\\'" . go-ts-mode))
+(add-to-list 'auto-mode-alist '("go\\.mod\\'" . go-ts-mode))
 
 (use-package web-mode
   :mode ("\\.cshtml\\'" "\\.razor\\'")

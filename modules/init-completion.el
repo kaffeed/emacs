@@ -1,5 +1,6 @@
 ;;; init-completion.el --- Completion frameworks -*- lexical-binding: t -*-
 
+;;; Code:
 (use-package vertico
   :config
   (setq vertico-cycle t)
@@ -50,11 +51,11 @@
 (use-package corfu
   :custom
   (corfu-auto t)
-  (corfu-auto-delay 0.05)       
-  (corfu-auto-prefix 1)         
-  (corfu-cycle t)               
-  (corfu-quit-no-match 'separator) 
-  (corfu-preselect 'prompt)     
+  (corfu-auto-delay 0.05)
+  (corfu-auto-prefix 1)
+  (corfu-cycle t)
+  (corfu-quit-no-match 'separator)
+  (corfu-preselect 'prompt)
   :bind
   (:map corfu-map
         ("TAB"   . corfu-next)

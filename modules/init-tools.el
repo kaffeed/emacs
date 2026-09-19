@@ -106,7 +106,7 @@ Otherwise, opens in the directory of the current file."
   :straight t
   :config
   (add-to-list 'exec-path (expand-file-name "~/.local/bin"))
-  (setq agent-shell-antigravity-acp-command '("agy"))
+  (setq agent-shell-antigravity-acp-command '("agy_acp_server.par"))
   (setq agent-shell-opencode-authentication
         (agent-shell-opencode-make-authentication :none t))
   (setq agent-shell-preferred-agent-config

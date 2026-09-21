@@ -22,6 +22,7 @@
   ((csharp-mode          . eglot-ensure)
    (c-mode               . eglot-ensure)
    (go-mode              . eglot-ensure)
+   (go-ts-mode           . eglot-ensure)
    (typescript-ts-mode   . eglot-ensure)
    (tsx-ts-mode          . eglot-ensure)
    (js-ts-mode           . eglot-ensure)
@@ -145,7 +146,20 @@
                               :https://json.schemastore.org/pre-commit-config.json
                               [".pre-commit-config.yaml"]
                               :https://gitlab.com/gitlab-org/gitlab/-/raw/master/app/assets/javascripts/editor/schema/ci.json
-                              [".gitlab-ci.yml" ".gitlab-ci.yaml"]))))
+                              [".gitlab-ci.yml" ".gitlab-ci.yaml"]))
+                  :gopls
+                  (:usePlaceholders t
+                   :staticcheck t
+                   :analyses
+                   (:unusedparams t
+                    :shadow t
+                    :fieldalignment t)
+                   :hints
+                   (:assignVariableTypes t
+                    :compositeLiteralFields t
+                    :functionTypeParameters t
+                    :parameterNames t
+                    :rangeVariableTypes t))))
 
   ;; Integrate yasnippet with eglot via cape
   (defun ss/eglot-capf ()

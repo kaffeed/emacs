@@ -17,6 +17,7 @@
 (require 'init-editor)
 (require 'init-workspace)
 (require 'init-prog)
+(require 'init-go)
 (require 'init-tools)
 (require 'init-org)
 

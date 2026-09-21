@@ -57,3 +57,5 @@ forge-database.sqlite
 # Local state / custom settings
 /.local/
 custom.el
+/agent/
+/agent-shell/

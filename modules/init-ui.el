@@ -1,8 +1,8 @@
 ;;; init-ui.el --- Appearance and UI configuration -*- lexical-binding: t -*-
 
 ;; Default font: Iosevka Nerd Font Mono 14pt
-(set-face-attribute 'default nil :font "Iosevka NFM" :height 140)
-(add-to-list 'default-frame-alist '(font . "Iosevka NFM-14"))
+(set-face-attribute 'default nil :font "Iosevka NFM" :height 110)
+(add-to-list 'default-frame-alist '(font . "Iosevka NFM-11"))
 
 ;; Start frames maximized
 (add-to-list 'default-frame-alist '(fullscreen . maximized))
@@ -64,8 +64,8 @@
         doom-themes-enable-italic t) ;; if nil, italics is universally disabled
   (doom-themes-visual-bell-config))
 
+(load-theme 'doom-flatwhite t)
 ;; Load the theme
-(load-theme 'doom-gruvbox t)
 
 (use-package indent-bars
   :straight (indent-bars :type git :host github :repo "jdtsmith/indent-bars")
@@ -75,11 +75,6 @@
   (indent-bars-no-descend-string t)
   (indent-bars-width-frac 0.2)
   (indent-bars-pad-frac 0.1))
-
-(use-package transpose-frame
-  :bind (("C-x 5 t" . transpose-frame)
-         ("C-x 5 f" . flip-frame)
-         ("C-x 5 r" . rotate-frame-clockwise)))
 
 ;; Modeline
 (use-package all-the-icons

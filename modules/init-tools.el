@@ -131,5 +131,17 @@ Otherwise, opens in the directory of the current file."
   :bind
   ("C-c d" . sharper-main-transient))
 
+(use-package mermaid-mode
+  :mode ("\\.mmd\\'" . mermaid-mode)
+  :config
+  (setq mermaid-mmdc-location "mmdc"))
+
+(use-package ob-mermaid
+  :after org
+  :config
+  (setq ob-mermaid-cli-path "mmdc")
+  (add-to-list 'org-babel-load-languages '(mermaid . t) t)
+  (org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages))
+
 (provide 'init-tools)
 ;;; init-tools.el ends here

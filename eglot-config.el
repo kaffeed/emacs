@@ -50,7 +50,8 @@
         ("C-c l ,"   . xref-go-back)
         ("C-c l ?"   . xref-find-references)
         ("C-c l i"   . eglot-find-implementation)
-        ("C-c l t"   . eglot-find-typeDefinition))
+        ("C-c l t"   . eglot-find-typeDefinition)
+        ("C-c l /"   . xref-find-apropos))
 
   :custom
   ;; Don't litter the modeline with eglot server name
@@ -61,7 +62,19 @@
   (eglot-events-buffer-size 0)
   ;; Don't confirm when applying code actions
   (eglot-confirm-server-initiated-edits nil)
-  (eglot-inlay-hints-mode nil)
+  ;; Disable blocking on server connection
+  (eglot-sync-connect nil)
+  ;; Disable noisy progress reports in echo area
+  (eglot-report-progress nil)
+  ;; Disable heavy server capabilities (highlighting on cursor move, inlay hints)
+  (eglot-ignored-server-capabilities '(:documentHighlightProvider
+                                       :inlayHintProvider))
+
+  (eglot-documentation-renderer 'markdown-ts-view-mode) ;; EMACS-31
+  (eglot-code-action-indications nil)
+
+  (eldoc-help-at-pt t) ;; EMACS-31
+  (eldoc-echo-area-prefer-doc-buffer t)
 
   :config
   ;; Angular Language Server
@@ -80,8 +93,8 @@
                                   (expand-file-name "angular.json"
                                                     (projectile-project-root))))
                             '("ngserver" "--stdio"
-                              "--tsProbeLocations" "."
-                              "--ngProbeLocations" ".")
+                              "--tsProbeLocations" ".,c:/Users/s.schubert/AppData/Roaming/npm/node_modules"
+                              "--ngProbeLocations" ".,c:/Users/s.schubert/AppData/Roaming/npm/node_modules")
                           '("typescript-language-server" "--stdio"))))))
 
   ;; YAML Language Server with schema associations
@@ -89,12 +102,20 @@
   (add-to-list 'eglot-server-programs
                `(yaml-ts-mode . ("yaml-language-server" "--stdio")))
 
-  ;; Razor Language Server for .cshtml (MVC/Razor Pages) and .razor (Blazor)
-  ;; Requires: dotnet tool install -g rzls
-  ;; rzls communicates with the Roslyn LSP server automatically via named pipe
-  ;; when both are installed as dotnet global tools.
-  (add-to-list 'eglot-server-programs
-               '(web-mode . ("rzls" "--logLevel" "Information")))
+  ;; Razor and Angular Language Servers for web-mode
+  ;; Dynamically selects ngserver if in an Angular project, else rzls.
+  (with-eval-after-load 'eglot
+    (add-to-list 'eglot-server-programs
+                 `(web-mode
+                   . ,(lambda (interactive)
+                        (if (and (projectile-project-root)
+                                 (file-exists-p
+                                  (expand-file-name "angular.json"
+                                                    (projectile-project-root))))
+                            '("ngserver" "--stdio"
+                              "--tsProbeLocations" ".,c:/Users/s.schubert/AppData/Roaming/npm/node_modules"
+                              "--ngProbeLocations" ".,c:/Users/s.schubert/AppData/Roaming/npm/node_modules")
+                          '("rzls" "--logLevel" "Information"))))))
 
   ;; Astro Language Server
   ;; Requires: npm i -g @astrojs/language-server
@@ -153,11 +174,8 @@
 
 (use-package consult-eglot
   :straight t
-  :after (eglot consult)
   :bind
-  ("M-s M-s" . consult-eglot-symbols)
-  (:map eglot-mode-map
-        ("C-c l /" . xref-find-apropos)))
+  ("M-s M-s" . consult-eglot-symbols))
 
 (provide 'eglot-config)
 ;;; eglot-config.el ends here

@@ -162,11 +162,13 @@
   (setq create-lockfiles nil)
   (setq next-line-add-newlines t)
 
+  (setq delete-pair-push-mark t)
+
   (let ((autosave-dir (expand-file-name "autosave/" user-emacs-directory)))
     (setq auto-save-list-file-prefix autosave-dir)
     (setq auto-save-file-name-transforms
           `((".*" ,autosave-dir t))))
-          
+  
   :bind
   (("C-x C-z" . nil)
    ("C-z" . nil)
@@ -204,6 +206,7 @@
    ("M-s f" . find-name-dired)
    ("M-j" . duplicate-dwim)
    ("C-x C-e" . ss/eval-last-sexp-overlay)
+   ("C-M-z" . delete-pair)
    :map isearch-mode-map
    ("M-w" . ss/isearch-copy-selected-word))
   )

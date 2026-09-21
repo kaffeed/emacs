@@ -41,6 +41,7 @@
   :bind (;; Global org shortcuts
          ("C-c a" . org-agenda)
          ("C-c l" . org-store-link)
+         ("C-c C-c" . org-capture)
          ;; Org-mode specific shortcuts
          :map org-mode-map
          ("C-c C-q" . org-set-tags-command)
@@ -194,14 +195,6 @@
            :clock-in :clock-resume :empty-lines 1))))
 
 ;;; ------------------------------------------------------------
-;;; Org-Super-Agenda
-;;; ------------------------------------------------------------
-(use-package org-super-agenda
-  :after org-agenda
-  :config
-  (org-super-agenda-mode))
-
-;;; ------------------------------------------------------------
 ;;; Org-Pomodoro
 ;;; ------------------------------------------------------------
 (use-package org-pomodoro
@@ -230,14 +223,3 @@
 
 (provide 'org-config)
 ;;; org-config.el ends here
-
-
-
-
-
-
-
-
-
-
-

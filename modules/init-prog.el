@@ -1,6 +1,7 @@
 ;;; init-prog.el --- Programming, syntax, and LSP configurations -*- lexical-binding: t -*-
 
 (setq treesit-font-lock-level 4)
+(setq treesit-auto-install-grammar t)
 (setq treesit-language-source-alist
       '((bash "https://github.com/tree-sitter/tree-sitter-bash" "v0.23.3")
         (cmake "https://github.com/uyha/tree-sitter-cmake")
@@ -17,10 +18,6 @@
         (astro "https://github.com/virchau13/tree-sitter-astro")
         ))
 
-(dolist (lang treesit-language-source-alist)
-  (unless (treesit-language-available-p (car lang))
-    (treesit-install-language-grammar (car lang))))
-
 (setq major-mode-remap-alist
       '((typescript-mode . typescript-ts-mode)
         (js-mode . js-ts-mode)
@@ -33,18 +30,26 @@
 (add-to-list 'auto-mode-alist '("\\.jsx\\'" . tsx-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.yaml\\'" . yaml-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.xaml\\'" . nxml-mode))
+(add-to-list 'auto-mode-alist '("\\.csproj\\'" . nxml-mode))
 
 (use-package web-mode
-  :mode ("\\.cshtml\\'" "\\.razor\\'")
+  :mode ("\\.cshtml\\'" "\\.razor\\'" "\\.html\\'")
   :hook (web-mode . (lambda ()
-                      (setq-local web-mode-engine "razor")))
+                      (when (and (buffer-file-name)
+                                 (string-match-p "\\.cshtml\\'\\|\\.razor\\'" (buffer-file-name)))
+                        (setq-local web-mode-engine "razor"))))
   :custom
+  (web-mode-engines-alist '(("angular" . "\\.html\\'")))
   (web-mode-markup-indent-offset 2)
   (web-mode-code-indent-offset 4)
   (web-mode-css-indent-offset 2)
   (web-mode-enable-auto-pairing t)
   (web-mode-enable-css-colorization t)
   (web-mode-enable-current-element-highlight t))
+
+(use-package markdown-ts-mode
+  :ensure nil
+  :defer t)
 
 (use-package astro-ts-mode
   :straight (astro-ts-mode :type git :host github :repo "Sorixelle/astro-ts-mode" :branch "master")
@@ -80,6 +85,8 @@
   (markdown-command "pandoc")
   (markdown-fontify-code-blocks-natively t))
 
+
+
 (use-package powershell
   :config
   (add-hook 'powershell-mode-hook
@@ -91,3 +98,4 @@
 
 (provide 'init-prog)
 ;;; init-prog.el ends here
+

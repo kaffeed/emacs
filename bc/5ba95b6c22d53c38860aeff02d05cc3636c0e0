@@ -1,0 +1,16 @@
+modules/init-core.el
+  h_a6c218ca847f12 256
+modules/init-tools.el
+  h_a6c218ca847f12 109-112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "bc5ba95b6c22d53c38860aeff02d05cc3636c0e0",
+  "prompts": {},
+  "humans": {
+    "h_a6c218ca847f12": {
+      "author": "Sebastian Schubert <sebastian.schubert@inola.at>"
+    }
+  }
+}

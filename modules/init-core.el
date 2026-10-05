@@ -253,21 +253,7 @@
 (setq repeat-keep-prefix t)
 (use-package repeat
   :init
-  (repeat-mode 1)
-  :config
-  (defvar-keymap my-line-repeat-map
-    :repeat t
-    "n" #'next-line
-    "p" #'previous-line)
-  (defvar-keymap my-word-repeat-map
-    :repeat t
-    "f" #'forward-word
-    "b" #'backward-word)
-  (defvar-keymap my-char-repeat-map
-    :repeat t
-    "f" #'forward-char
-    "b" #'backward-char)
-  )
+  (repeat-mode 1))
 
 (require 'ansi-color)
 (add-hook 'compilation-filter-hook #'ansi-color-compilation-filter)

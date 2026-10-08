@@ -30,6 +30,10 @@
 (use-package seq :straight (:type built-in))
 (use-package map :straight (:type built-in))
 
+;; Fix Org version mismatch by loading the Straight version before any
+;; other package can trigger loading the built-in Org version.
+(straight-use-package 'org)
+
 (defconst *is-a-linux* (eq system-type 'gnu/linux))
 (defconst *is-a-windoof* (eq system-type 'windows-nt))
 

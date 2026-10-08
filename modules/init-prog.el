@@ -50,9 +50,11 @@
   (web-mode-enable-css-colorization t)
   (web-mode-enable-current-element-highlight t))
 
-(use-package markdown-ts-mode
-  :ensure nil
-  :defer t)
+
+(when (< emacs-major-version 31)
+  (use-package markdown-ts-mode
+    :ensure nil
+    :defer t))
 
 (use-package astro-ts-mode
   :straight (astro-ts-mode :type git :host github :repo "Sorixelle/astro-ts-mode" :branch "master")

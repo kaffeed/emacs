@@ -21,6 +21,7 @@
 (setq major-mode-remap-alist
       '((typescript-mode . typescript-ts-mode)
         (js-mode . js-ts-mode)
+        (c-mode . c-ts-mode)
         (css-mode . css-ts-mode)
         (json-mode . json-ts-mode)
         (yaml-mode . yaml-ts-mode)

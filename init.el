@@ -18,6 +18,7 @@
 (require 'init-workspace)
 (require 'init-prog)
 (require 'init-go)
+(require 'init-lisp)
 (require 'init-tools)
 (require 'init-org)
 

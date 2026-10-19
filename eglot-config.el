@@ -69,7 +69,8 @@
   (eglot-report-progress nil)
   ;; Disable heavy server capabilities (highlighting on cursor move, inlay hints)
   (eglot-ignored-server-capabilities '(:documentHighlightProvider
-                                       :inlayHintProvider))
+                                       :inlayHintProvider
+                                       :semanticTokensProvider))
 
   (eglot-documentation-renderer 'markdown-ts-view-mode) ;; EMACS-31
   (eglot-code-action-indications nil)
@@ -149,17 +150,17 @@
                               [".gitlab-ci.yml" ".gitlab-ci.yaml"]))
                   :gopls
                   (:usePlaceholders t
-                   :staticcheck t
-                   :analyses
-                   (:unusedparams t
-                    :shadow t
-                    :fieldalignment t)
-                   :hints
-                   (:assignVariableTypes t
-                    :compositeLiteralFields t
-                    :functionTypeParameters t
-                    :parameterNames t
-                    :rangeVariableTypes t))))
+                                    :staticcheck t
+                                    :analyses
+                                    (:unusedparams t
+                                                   :shadow t
+                                                   :fieldalignment t)
+                                    :hints
+                                    (:assignVariableTypes t
+                                                          :compositeLiteralFields t
+                                                          :functionTypeParameters t
+                                                          :parameterNames t
+                                                          :rangeVariableTypes t))))
 
   ;; Integrate yasnippet with eglot via cape
   (defun ss/eglot-capf ()

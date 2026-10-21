@@ -14,6 +14,8 @@
 ;; - HTML/CSS:   vscode-langservers-extracted (npm i -g vscode-langservers-extracted)
 ;; - JSON:       vscode-langservers-extracted (same as above)
 ;; - YAML:       yaml-language-server (npm i -g yaml-language-server)
+;; - Dockerfile: dockerfile-language-server-nodejs (npm i -g dockerfile-language-server-nodejs)
+;; - Compose:    @microsoft/compose-language-service (npm i -g @microsoft/compose-language-service)
 ;; - Angular:    @angular/language-server (npm i -g @angular/language-server)
 
 (use-package eglot
@@ -34,6 +36,8 @@
    (json-mode            . eglot-ensure)
    (json-ts-mode         . eglot-ensure)
    (yaml-ts-mode         . eglot-ensure)
+   (dockerfile-ts-mode   . eglot-ensure)
+   (docker-compose-ts-mode . eglot-ensure)
    (astro-ts-mode        . eglot-ensure)
    (web-mode             . eglot-ensure))
 
@@ -103,6 +107,16 @@
   ;; Requires: npm i -g yaml-language-server
   (add-to-list 'eglot-server-programs
                `(yaml-ts-mode . ("yaml-language-server" "--stdio")))
+
+  ;; Dockerfile Language Server
+  ;; Requires: npm i -g dockerfile-language-server-nodejs
+  (add-to-list 'eglot-server-programs
+               '(dockerfile-ts-mode . ("docker-langserver" "--stdio")))
+
+  ;; Docker Compose Language Service
+  ;; Requires: npm i -g @microsoft/compose-language-service
+  (add-to-list 'eglot-server-programs
+               '(docker-compose-ts-mode . ("docker-compose-langserver" "--stdio")))
 
   ;; Razor and Angular Language Servers for web-mode
   ;; Dynamically selects ngserver if in an Angular project, else rzls.

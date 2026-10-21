@@ -20,6 +20,7 @@
 (require 'init-go)
 (require 'init-lisp)
 (require 'init-tools)
+(require 'init-logs)
 (require 'init-org)
 
 ;; Load custom interface settings if present

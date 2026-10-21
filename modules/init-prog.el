@@ -1,7 +1,7 @@
 ;;; init-prog.el --- Programming, syntax, and LSP configurations -*- lexical-binding: t -*-
 
 (setq treesit-font-lock-level 4)
-(setq treesit-auto-install-grammar t)
+(setq treesit-auto-install-grammar 'always)
 (setq treesit-language-source-alist
       '((bash "https://github.com/tree-sitter/tree-sitter-bash" "v0.23.3")
         (cmake "https://github.com/uyha/tree-sitter-cmake")
@@ -16,6 +16,7 @@
         (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
         (yaml "https://github.com/tree-sitter-grammars/tree-sitter-yaml" "v0.6.1")
         (astro "https://github.com/virchau13/tree-sitter-astro")
+        (dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")
         ))
 
 (setq major-mode-remap-alist
@@ -25,12 +26,17 @@
         (css-mode . css-ts-mode)
         (json-mode . json-ts-mode)
         (yaml-mode . yaml-ts-mode)
+        (dockerfile-mode . dockerfile-ts-mode)
         (go-mode . go-ts-mode)))
 
 (add-to-list 'auto-mode-alist '("\\.tsx\\'" . tsx-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.ts\\'" . typescript-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.jsx\\'" . tsx-ts-mode))
-(add-to-list 'auto-mode-alist '("\\.yaml\\'" . yaml-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . yaml-ts-mode))
+(define-derived-mode docker-compose-ts-mode yaml-ts-mode "Compose"
+  "YAML mode for docker-compose files.")
+(add-to-list 'auto-mode-alist
+             '("\\(?:docker-\\)?compose[^/]*\\.ya?ml\\'" . docker-compose-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.xaml\\'" . nxml-mode))
 (add-to-list 'auto-mode-alist '("\\.csproj\\'" . nxml-mode))
 (add-to-list 'auto-mode-alist '("\\.go\\'" . go-ts-mode))
@@ -81,7 +87,11 @@
 
 (use-package dockerfile-mode
   :straight (:type git :host github :repo "spotify/dockerfile-mode")
-  :mode ("Dockerfile\\'" "\\.dockerfile\\'"))
+  :mode ("Dockerfile\\(\\..*\\)?\\'" "\\.dockerfile\\'" "\\(?:Container\\|Docker\\)file\\.[^/]*\\'"))
+
+(add-to-list 'auto-mode-alist '("Dockerfile\\(\\..*\\)?\\'" . dockerfile-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.dockerfile\\'" . dockerfile-ts-mode))
+(add-to-list 'auto-mode-alist '("\\(?:Container\\|Docker\\)file\\.[^/]*\\'" . dockerfile-ts-mode))
 
 (use-package markdown-mode
   :mode (("README\\.md\\'" . gfm-mode)

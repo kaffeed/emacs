@@ -71,9 +71,6 @@ Otherwise, opens in the directory of the current file."
 (use-package forge
   :after magit)
 
-(use-package opencode
-  :straight (opencode :type git :host codeberg :repo "sczi/opencode.el"))
-
 (use-package git-modes)
 
 (use-package eat
@@ -125,7 +122,11 @@ Otherwise, opens in the directory of the current file."
 
 (setopt agent-shell-dot-subdir-function #'ss/agent-shell-dot-subdir)
 
-(use-package docker)
+(use-package docker
+  :bind ("C-c M-d" . docker)
+  :custom
+  (docker-command "docker")
+  (docker-compose-command "docker compose"))
 
 (use-package helpful
   :bind (("C-h f" . helpful-callable)     

@@ -1,0 +1,51 @@
+modules/init-prog.el
+  s_981a40471a3de1::t_3446357b695aad 90-94
+  s_981a40471a3de1::t_b63be195d48db5 19
+  s_feb6e59fe51ced::t_5ec0f43e9ebce3 35
+  s_981a40471a3de1::t_322af212aa1d6f 4
+  s_981a40471a3de1::t_8aeff23fcdedc6 29
+  s_981a40471a3de1::t_28fe4b1b9ac8c0 36-39
+modules/init-tools.el
+  s_981a40471a3de1::t_f6eb0945ff9def 125-129
+modules/init-logs.el
+  s_21143380a16daa::t_18e96b044cd4f9 32
+  s_21143380a16daa::t_03921238366e3c 1-31,33-52
+init.el
+  s_21143380a16daa::t_03921238366e3c 23
+eglot-config.el
+  s_981a40471a3de1::t_78fa7db3f1ec29 111-120
+  s_981a40471a3de1::t_ce897b480924ce 39-40
+  s_981a40471a3de1::t_9561040e0e89bf 17-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "301dae8241f389ccf5e3aa89e7f90782909c60d1",
+  "prompts": {},
+  "sessions": {
+    "s_21143380a16daa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "53dc1d70-ec9e-4ea5-ab64-d2da63d64218",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Sebastian Schubert <sebastian.schubert@inola.at>"
+    },
+    "s_981a40471a3de1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "303a826d-0594-4f29-afb6-380848d5b7ca",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Sebastian Schubert <sebastian.schubert@inola.at>"
+    },
+    "s_feb6e59fe51ced": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d593982b-d203-4f22-9ea5-a7003236e8f0",
+        "model": "claude-sonnet-5-5"
+      },
+      "human_author": "Sebastian Schubert <sebastian.schubert@inola.at>"
+    }
+  }
+}

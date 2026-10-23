@@ -1,0 +1,20 @@
+modules/init-org.el
+  s_44aa97ba79c1d4::t_02c3c0fec028ce 13-16
+  s_44aa97ba79c1d4::t_8d8145502c308c 46-47,51-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e8f3188451050d0b99da98a2cea3982a6f7a834c",
+  "prompts": {},
+  "sessions": {
+    "s_44aa97ba79c1d4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "416fb512-95a7-4c10-9b65-c00650cdcfcd",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Sebastian Schubert <sebastian.schubert@inola.at>"
+    }
+  }
+}

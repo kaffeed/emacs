@@ -201,6 +201,14 @@
   (when (memq window-system '(mac ns x))
     (exec-path-from-shell-initialize)))
 
+(when *is-a-windoof*
+  ;; only interactive M-x shell; shell-file-name stays cmdproxy so grep/find-dired/compile keep working
+  ;; -NoProfile: the user profile prompt makes pwsh exit on a pipe
+  (setq explicit-shell-file-name "pwsh.exe"
+        explicit-pwsh.exe-args '("-NoLogo" "-NoProfile" "-NoExit"))
+  ;; pwsh echoes piped input; drop the duplicate line
+  (add-hook 'shell-mode-hook (lambda () (setq-local comint-process-echoes t))))
+
 (use-package gcmh
   :config
   (gcmh-mode 1)

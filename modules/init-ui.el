@@ -1,20 +1,16 @@
 ;;; init-ui.el --- Appearance and UI configuration -*- lexical-binding: t -*-
 
-;; Default font: Iosevka Nerd Font Mono 14pt
+;; Default font: Iosevka Nerd Font Mono 11pt
 (set-face-attribute 'default nil :font "Iosevka NFM" :height 110)
-(add-to-list 'default-frame-alist '(font . "Iosevka NFM-11"))
 
 ;; Start frames maximized
 (add-to-list 'default-frame-alist '(fullscreen . maximized))
 
 (column-number-mode)
 
-(setq display-line-numbers-type 'relative)
-(global-display-line-numbers-mode t)
-(dolist (mode '(org-mode-hook
-                term-mode-hook
-                eshell-mode-hook))
-  (add-hook mode (lambda () (display-line-numbers-mode 0))))
+(setq display-line-numbers-type t)
+(dolist (hook '(prog-mode-hook conf-mode-hook yaml-ts-mode-hook))
+  (add-hook hook #'display-line-numbers-mode))
 
 (winner-mode +1)
 (defun toggle-delete-other-windows ()

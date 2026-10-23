@@ -1,11 +1,10 @@
 ;;; init-editor.el --- Editing, formatting, projects and workspaces -*- lexical-binding: t -*-
 
-(use-package undo-fu
-  :bind (("C-/" . undo-fu-only-undo)
-         ("C-S-/" . undo-fu-only-redo)))
+;; Built-in equivalents of undo-fu-only-undo / undo-fu-only-redo
+(keymap-global-set "C-/" #'undo-only)
+(keymap-global-set "C-S-/" #'undo-redo)
 
 (use-package undo-fu-session
-  :after undo-fu
   :config
   (setq undo-fu-session-incompatible-files '("/COMMIT_EDITMSG\\'" "/git-rebase-todo\\'"))
   (undo-fu-session-global-mode))
@@ -44,7 +43,7 @@
 (use-package multiple-cursors
   :bind (("C->" .           mc/mark-next-like-this)
          ("C-<" .           mc/mark-previous-like-this)
-         ("C-c C-<" .       mc/mark-all-like-this)
+         ("C-c m" .         mc/mark-all-like-this)
          ("C-S-c C-S-c" .   mc/edit-lines)
          ("C-S-<mouse-1>" . mc/add-cursor-on-click)))
 

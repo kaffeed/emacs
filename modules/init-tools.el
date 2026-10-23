@@ -42,9 +42,9 @@ Otherwise, opens in the directory of the current file."
   :config
   (recentf-mode 1)
   (setq recentf-max-menu-items 50
-        recentf-max-saved-items 50)
+        recentf-max-saved-items 300)
   (run-at-time nil (* 5 60) 'recentf-save-list)
-  :bind ("C-x C-r" . recentf-open-files))
+  :bind ("C-x C-r" . consult-recent-file))
 
 (use-package magit
   :bind (("C-x g" . magit-status)

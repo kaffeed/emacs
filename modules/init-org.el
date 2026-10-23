@@ -25,7 +25,6 @@
 
 (defun ss/org-mode-visual-setup ()
   "Configure visual settings for org-mode buffers."
-  (variable-pitch-mode 1)
   (auto-fill-mode 0)
   (visual-line-mode 1))
 
@@ -176,7 +175,7 @@ Each repo only talks to its own remote; a repo without one is just committed."
             (todo "NEXT"
                   ((org-agenda-overriding-header "Next Actions (Ready to pick up)")
                    (org-agenda-sorting-strategy '(priority-down effort-up))))
-            (tags "LEVEL=2"
+            (tags "LEVEL=1"
                   ((org-agenda-overriding-header "Inbox (Needs Processing)")
                    (org-agenda-files (seq-filter #'file-exists-p
                                                  '("~/org/inbox.org" "~/org/work/inbox.org")))))))))

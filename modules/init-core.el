@@ -104,6 +104,7 @@
         completion-ignore-case t)
 
   (save-place-mode 1)
+  (savehist-mode 1)
 
   (global-auto-revert-mode 1)
   (setq global-auto-revert-non-file-buffers t)
@@ -153,7 +154,6 @@
         (isearch-exit))))
 
   (setq create-lockfiles nil)
-  (setq next-line-add-newlines t)
 
   (let ((autosave-dir (expand-file-name "autosave/" user-emacs-directory)))
     (setq auto-save-list-file-prefix autosave-dir)
@@ -187,7 +187,7 @@
    ("C-S-<tab>" . previous-buffer)
    ("C-c e" . eshell)
    ("C-c w" . delete-trailing-whitespace)
-   ("C-c C-b" . ibuffer)
+   ("C-c B" . ibuffer)
    ("M-s f" . find-name-dired)
    ("M-j" . duplicate-dwim)
    ("C-x C-e" . ss/eval-last-sexp-overlay)

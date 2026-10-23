@@ -22,7 +22,8 @@ tramp
 /var/pcache
 forge-database.sqlite
 /server/
-/straight/
+/straight/*
+!/straight/versions/
 /quelpa/
 /transient/
 /history

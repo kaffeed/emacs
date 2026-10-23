@@ -7,7 +7,7 @@
   (setq vertico-resize nil)
   (vertico-mode 1)
   (require 'vertico-multiform)
-  (vertico-flat-mode)
+  ;; (vertico-flat-mode)
   (add-to-list 'vertico-multiform-categories '(embark-keybinding grid))
   (vertico-multiform-mode))
 

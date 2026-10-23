@@ -1,0 +1,14 @@
+straight/versions/default.el
+  h_a6c218ca847f12 1-97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7a8dbcaee86928c9fca458f4a698c96f8a0912c6",
+  "prompts": {},
+  "humans": {
+    "h_a6c218ca847f12": {
+      "author": "Sebastian Schubert <sebastian.schubert@inola.at>"
+    }
+  }
+}

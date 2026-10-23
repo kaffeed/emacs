@@ -1,0 +1,29 @@
+modules/init-org.el
+  s_44aa97ba79c1d4::t_4cc9eabc3c1361 73
+  s_44aa97ba79c1d4::t_d2de19dc7cd9c3 38-39
+  s_44aa97ba79c1d4::t_28c3654cee8683 179,182,184-195,197-201,203-204,206-213
+  s_44aa97ba79c1d4::t_b0a16128891fff 82-83
+  s_44aa97ba79c1d4::t_a57566896f5167 134
+  s_44aa97ba79c1d4::t_b09cbcf16eb8da 55
+  s_44aa97ba79c1d4::t_2082a8d48f69f7 12-15,31-37,40-54,56-61
+  s_44aa97ba79c1d4::t_d486086c496a63 72
+  s_44aa97ba79c1d4::t_8afc40173a7b0d 105
+  s_44aa97ba79c1d4::t_a13bc987da4740 232-233,235-241
+  s_44aa97ba79c1d4::t_e50716c18cb623 180
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d9d40f12c0683c5eff60effa9ce374d1fb9edd79",
+  "prompts": {},
+  "sessions": {
+    "s_44aa97ba79c1d4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "416fb512-95a7-4c10-9b65-c00650cdcfcd",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Sebastian Schubert <sebastian.schubert@inola.at>"
+    }
+  }
+}

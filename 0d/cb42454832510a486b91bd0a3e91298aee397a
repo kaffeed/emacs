@@ -1,0 +1,48 @@
+README.md
+  s_7e5a08e84adfb5::t_267ff0fd0e677a 3,14,29-30,34,42
+  s_7e5a08e84adfb5::t_24097888c295fb 7-13,38
+modules/init-prog.el
+  s_7e5a08e84adfb5::t_98bf28453eeb5f 1,3-5,7,9-13,15-20,22-24,38-41,43-60,63-80,83-131
+modules/init-core.el
+  s_7e5a08e84adfb5::t_d43c21ca63c18b 62
+  s_7e5a08e84adfb5::t_8fb0bb016cd5ad 70
+modules/init-ui.el
+  s_7e5a08e84adfb5::t_63a4ff6eab542f 82
+.gitignore
+  s_7e5a08e84adfb5::t_0f6b3484357a32 62-65
+modules/init-lang.el
+  s_7e5a08e84adfb5::t_4b8fbeccc49bea 1,3-6,8-38,40-41,43,45-58,60-77,79-92,96-136,138,140-179,197-262
+modules/init-org.el
+  s_7e5a08e84adfb5::t_8438994bfd007c 1,3-6,8,10-178,180-204,224-232
+  s_7e5a08e84adfb5::t_b78dbca905175d 233
+modules/init-completion.el
+  s_7e5a08e84adfb5::t_8fb0bb016cd5ad 95
+init.el
+  s_7e5a08e84adfb5::t_8438994bfd007c 19
+modules/init-tools.el
+  s_7e5a08e84adfb5::t_8438994bfd007c 116-130,132-160
+  s_7e5a08e84adfb5::t_0f6b3484357a32 52
+  s_7e5a08e84adfb5::t_c7e3bb2bd9b1f5 63
+  s_7e5a08e84adfb5::t_8fb0bb016cd5ad 47
+modules/init-editor.el
+  s_7e5a08e84adfb5::t_e549cb5b55da7a 85
+  s_7e5a08e84adfb5::t_8fb0bb016cd5ad 19,55
+  s_7e5a08e84adfb5::t_0f6b3484357a32 5,41
+  s_7e5a08e84adfb5::t_d6acffc354d88c 1,93-141
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0dcb42454832510a486b91bd0a3e91298aee397a",
+  "prompts": {},
+  "sessions": {
+    "s_7e5a08e84adfb5": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "52ba072f-ed4c-454d-844b-6585451be452",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Sebastian Schubert <sebastian.schubert@inola.at>"
+    }
+  }
+}

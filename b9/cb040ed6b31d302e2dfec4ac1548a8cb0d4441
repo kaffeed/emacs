@@ -1,0 +1,14 @@
+modules/init-completion.el
+  h_a6c218ca847f12 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b9cb040ed6b31d302e2dfec4ac1548a8cb0d4441",
+  "prompts": {},
+  "humans": {
+    "h_a6c218ca847f12": {
+      "author": "Sebastian Schubert <sebastian.schubert@inola.at>"
+    }
+  }
+}

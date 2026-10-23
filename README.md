@@ -1,12 +1,17 @@
 # Emacs Configuration
 
-This repository contains a modern Emacs 29+ configuration tailored for software development, utilizing native features and declarative package management.
+This repository contains a modern Emacs 31+ configuration tailored for software development, utilizing native features and declarative package management.
 
 ## Core Setup
 - **Package Manager**: `straight.el` with `use-package`.
-- **Initialization**: A fully modular architecture. `init.el` serves as a bootstrap loader for domain-specific files inside the `modules/` directory (e.g., `init-core.el`, `init-ui.el`, `init-prog.el`).
-- **Debugging & LSP**: Separated into `eglot-config.el` (LSP) and `dape-config.el` (DAP).
-- **Minimum Version**: Emacs 29.1+ (relies on built-in `treesit` and `eglot`).
+- **Initialization**: `init.el` requires the files in `modules/`:
+  - `init-core.el` defaults and global keys, `init-ui.el`, `init-completion.el`
+  - `init-editor.el` editing, formatting, projects and perspectives
+  - `init-prog.el` generic tooling: tree-sitter, flymake, eglot, dape
+  - `init-lang.el` one section per language: mode, language server, debugger, keys
+  - `init-tools.el` magit, docker, agent-shell, logs
+  - `init-org.el` org, journal, pomodoro, org-roam
+- **Minimum Version**: Emacs 31 (uses built-in `treesit`, `eglot`, `which-key`, `editorconfig` and Emacs 31 window/eldoc commands).
 
 ## Features & Packages
 
@@ -21,20 +26,20 @@ This repository contains a modern Emacs 29+ configuration tailored for software 
 - **Snippets**: `yasnippet` and `yasnippet-snippets`.
 
 ### Development & Languages
-- **Syntax Highlighting**: Built-in tree-sitter (`treesit`) with native major modes (`*-ts-mode`). Auto-installs missing grammars. Supported out-of-the-box: TypeScript, JavaScript, HTML, CSS, JSON, YAML, Go, C#, Astro.
-- **Language Server Protocol (LSP)**: `eglot` (built-in). Pre-configured for C#, Go, TypeScript, HTML/CSS, JSON, YAML, Angular, and Astro.
+- **Syntax Highlighting**: Built-in tree-sitter (`treesit`) with native major modes (`*-ts-mode`). Auto-installs missing grammars. Supported out-of-the-box: TypeScript, JavaScript, HTML, CSS, JSON, YAML, Go, C, C#, Astro, Dockerfile.
+- **Language Server Protocol (LSP)**: `eglot` (built-in). Pre-configured for C, C#, Go, TypeScript, HTML/CSS, JSON, YAML, Dockerfile/Compose, Angular, Razor, and Astro.
 - **Debugging (DAP)**: `dape`. Configured for .NET Core (`netcoredbg`), Go (`dlv`), and Node.js/Next.js (`js-debug`).
 - **Diagnostics**: Built-in `flymake`.
 - **Formatting**: `apheleia` (asynchronous, cursor-preserving formatting).
-- **Project Management**: `projectile` combined with `perspective` (`persp-mode`) for isolated, project-aware workspaces.
+- **Project Management**: built-in `project.el` (`C-x p` / `C-c p`) combined with `perspective` (`persp-mode`); switching projects (`C-c p p`) opens a perspective per project.
 
 ### Git & Org
 - **Version Control**: `magit` and `forge`.
-- **Org-mode**: Separate configuration in `org-config.el` including custom agenda views, capture templates, time tracking, and Azure DevOps integration.
+- **Org-mode**: `modules/init-org.el` including custom agenda views, capture templates, time tracking, and Azure DevOps integration.
 
 ## Installation
 
-1. Ensure Emacs 29.1+ is installed.
+1. Ensure Emacs 31+ is installed.
 2. Clone this repository to the user config directory:
    ```bash
    git clone <repository-url> ~/.config/emacs
@@ -45,4 +50,3 @@ This repository contains a modern Emacs 29+ configuration tailored for software 
 ## Notes
 - Custom variables are saved to `custom-vars.el`.
 - Language servers and debug adapters must be installed externally (e.g., via `npm` or `dotnet tool`).
-- The `modules/` configuration files are intentionally excluded from `compile-angel` auto-compilation to prevent asynchronous macro expansion issues.

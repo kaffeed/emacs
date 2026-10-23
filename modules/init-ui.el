@@ -40,7 +40,6 @@
 (global-set-key (kbd "C-x w f v") 'window-layout-flip-topdown)
 
 (use-package spacious-padding
-  :ensure t
   :hook (after-init . spacious-padding-mode)
   :custom
   (spacious-padding-widths
@@ -52,12 +51,8 @@
       :scroll-bar-width 8
       :fringe-width 8)))
 
-;; Set up custom themes directory
-(add-to-list 'custom-theme-load-path (expand-file-name "themes" user-emacs-directory))
-
 ;; Install and configure doom-themes
 (use-package doom-themes
-  :ensure t
   :config
   ;; Global settings (defaults)
   (setq doom-themes-enable-bold t    ;; if nil, bold is universally disabled
@@ -77,20 +72,14 @@
   (indent-bars-pad-frac 0.1))
 
 ;; Modeline
-(use-package all-the-icons
-  :straight t
-  :if (display-graphic-p))
-
 (use-package nerd-icons
-  :straight t
   :custom
   (nerd-icons-font-family "Symbols Nerd Font Mono"))
 
 (use-package doom-modeline
-  :ensure t
   :init (doom-modeline-mode 1))
 
-(use-package which-key :config (which-key-mode))
+(use-package which-key :straight (:type built-in) :config (which-key-mode))
 
 (provide 'init-ui)
 ;;; init-ui.el ends here

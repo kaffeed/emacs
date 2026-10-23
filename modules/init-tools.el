@@ -44,14 +44,12 @@ Otherwise, opens in the directory of the current file."
   (setq recentf-max-menu-items 50
         recentf-max-saved-items 50)
   (run-at-time nil (* 5 60) 'recentf-save-list)
-  :bind ("C-c r" . recentf-open-files))
+  :bind ("C-x C-r" . recentf-open-files))
 
 (use-package magit
-  :commands (magit-status magit-get-current-branch)
   :bind (("C-x g" . magit-status)
          ("C-x M-g" . magit-dispatch)
-         ("C-c M-g" . magit-file-dispatch)
-         ("<f8>" . magit-status))
+         ("C-c M-g" . magit-file-dispatch))
   :custom
   (magit-display-buffer-function #'magit-display-buffer-fullcolumn-most-v1)
   (magit-commit-show-diff nil))
@@ -62,8 +60,7 @@ Otherwise, opens in the directory of the current file."
          (magit-pre-refresh . diff-hl-magit-pre-refresh)
          (magit-post-refresh . diff-hl-magit-post-refresh)))
 
-(with-eval-after-load 'projectile
-  (define-key projectile-mode-map (kbd "C-c p g") #'magit-status))
+(keymap-set project-prefix-map "m" #'magit-project-status)
 
 (add-hook 'git-commit-setup-hook #'git-commit-turn-on-flyspell)
 (add-hook 'git-commit-setup-hook #'turn-on-auto-fill)
@@ -73,20 +70,6 @@ Otherwise, opens in the directory of the current file."
 
 (use-package git-modes)
 
-(use-package eat
-  :straight (:type git :host codeberg :repo "akib/emacs-eat"
-                   :files ("*.el" ("term" "term/*.el") "*.texi"
-                           "*.ti" ("terminfo/e" "terminfo/e/*")
-                           ("terminfo/65" "terminfo/65/*")
-                           ("integration" "integration/*")
-                           (:exclude ".dir-locals.el" "*-tests.el")))
-  :bind (("C-c T" . eat)
-         ("C-c C-t" . eat-project)
-         ("<f12>" . eshell))
-  :custom
-  (eat-kill-buffer-on-exit t)
-  (eat-shell "pwsh"))
-
 (use-package restclient
   :mode ("\\.http\\'" . restclient-mode))
 
@@ -95,12 +78,7 @@ Otherwise, opens in the directory of the current file."
   :config
   (pdf-tools-install :no-query))
 
-(use-package shell-maker :straight t)
-
-(use-package acp :straight t)
-
 (use-package agent-shell
-  :straight t
   :config
   (add-to-list 'exec-path (expand-file-name "~/.local/bin"))
   (setq agent-shell-antigravity-acp-command
@@ -135,22 +113,51 @@ Otherwise, opens in the directory of the current file."
          ("C-h F" . helpful-function)     
          ("C-h C" . helpful-command)))    
 
-(use-package sharper
-  :demand t
-  :bind
-  ("C-c d" . sharper-main-transient))
+;;; ------------------------------------------------------------
+;;; Logs
+;;; ------------------------------------------------------------
+;; Log viewing built around `logview' (highlighting, filtering, format
+;; detection), `vlf' for very large files, `auto-revert-tail-mode' for
+;; tailing and `ansi-color' for logs containing escape sequences.
+;;
+;; Keys: C-c L t  tail a log file
+;;       C-c L v  open file in vlf
 
-(use-package mermaid-mode
-  :mode ("\\.mmd\\'" . mermaid-mode)
-  :config
-  (setq mermaid-mmdc-location "mmdc"))
+(use-package logview
+  :mode ("\\.log\\(?:\\.[0-9]+\\)?\\'" . logview-mode)
+  :custom
+  (logview-auto-revert-mode 'auto-revert-tail-mode)
+  (logview-cache-filename (locate-user-emacs-file "var/logview-cache.el")))
 
-(use-package ob-mermaid
-  :after org
-  :config
-  (setq ob-mermaid-cli-path "mmdc")
-  (add-to-list 'org-babel-load-languages '(mermaid . t) t)
-  (org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages))
+(use-package vlf
+  :init (require 'vlf-setup)
+  :custom
+  (vlf-application 'ask)
+  (large-file-warning-threshold (* 50 1024 1024)))
+
+(defun ss/log-apply-ansi ()
+  "Render ANSI escape sequences in a log buffer, then make it read-only."
+  (when (and (derived-mode-p 'logview-mode)
+             (save-excursion
+               (goto-char (point-min))
+               (re-search-forward "\e\\[" nil t)))
+    (let ((inhibit-read-only t)
+          (modified (buffer-modified-p)))
+      (ansi-color-apply-on-region (point-min) (point-max))
+      (set-buffer-modified-p modified))
+    (setq buffer-read-only t)))
+
+(add-hook 'logview-mode-hook #'ss/log-apply-ansi)
+
+(defun ss/log-tail (file)
+  "Open FILE, follow its tail and jump to the end."
+  (interactive "fLog file: ")
+  (find-file file)
+  (auto-revert-tail-mode 1)
+  (goto-char (point-max)))
+
+(global-set-key (kbd "C-c L t") #'ss/log-tail)
+(global-set-key (kbd "C-c L v") #'vlf)
 
 (provide 'init-tools)
 ;;; init-tools.el ends here

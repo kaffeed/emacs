@@ -15,12 +15,9 @@
 (require 'init-ui)
 (require 'init-completion)
 (require 'init-editor)
-(require 'init-workspace)
 (require 'init-prog)
-(require 'init-go)
-(require 'init-lisp)
+(require 'init-lang)
 (require 'init-tools)
-(require 'init-logs)
 (require 'init-org)
 
 ;; Load custom interface settings if present

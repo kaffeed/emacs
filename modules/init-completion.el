@@ -28,7 +28,6 @@
          ("M-s M-l" . consult-line)
          ("M-s M-b" . consult-buffer)
          ("C-x C-b" . consult-buffer)
-         ("C-c s" . consult-ripgrep)
          ("C-c b" . consult-bookmark)
          ("C-c i" . consult-imenu)))
 
@@ -93,8 +92,7 @@
 
 (use-package yasnippet
   :config
-  (yas-global-mode 1)
-  :diminish yas-minor-mode)
+  (yas-global-mode 1))
 
 (use-package yasnippet-snippets
   :after yasnippet)

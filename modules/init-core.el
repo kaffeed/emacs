@@ -16,7 +16,6 @@
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
-(require 'treesit)
 (straight-use-package 'use-package)
 
 ;; Configure use-package to use straight.el by default
@@ -60,25 +59,15 @@
 
 (use-package emacs
   :init
+  ;; Only files/processes: Windows clipboard must stay utf-16le
   (prefer-coding-system 'utf-8)
-  (setq locale-coding-system 'utf-8)
-  (set-terminal-coding-system 'utf-8)
-  (set-keyboard-coding-system 'utf-8)
-  (set-selection-coding-system 'utf-8)
-  (setq default-buffer-file-coding-system 'utf-8)
   (setq-default bidi-display-reordering 'left-to-right
                 bidi-paragraph-direction 'left-to-right)
   (setq bidi-inhibit-bpa t)
   (setq redisplay-skip-fontification-on-input t)
   (setq read-process-output-max (* 4 1024 1024))
 
-  (add-hook 'after-init-hook
-            (lambda ()
-              (setq gc-cons-threshold (* 100 1024 1024)
-                    gc-cons-percentage 0.1)))
-  (setq inhibit-startup-message t
-        inhibit-startup-screen t
-        visible-bell t)
+  (setq inhibit-startup-screen t)
 
   (when *is-a-linux*
     (setq-default x-super-keysym 'meta))
@@ -178,16 +167,11 @@
    ("M-v" . ss/scroll-half-page-up)
    ("C-x C-c" . ss/safe-kill-emacs)
    ("C-c c" . compile)
-   ("C-c ]" . next-error)
-   ("C-c [" . previous-error)
    ("M-n" . next-error)
    ("M-p" . previous-error)
    ("<f5>" . revert-buffer)
-   ("<f9>" . compile)
    ("C-x 5 l"  . select-frame-by-name)
    ("C-x 5 s"  . set-frame-name)
-   ("RET" . newline-and-indent)
-   ("M-J" . duplicate-dwim)
    ("M-K" . kill-paragraph)
    ("M-Z" . zap-up-to-char)
    ("M-F" . forward-to-word)
@@ -216,36 +200,6 @@
   :init
   (when (memq window-system '(mac ns x))
     (exec-path-from-shell-initialize)))
-
-(setq load-prefer-newer t)
-
-(use-package compile-angel
-  :demand t
-  :config
-  (setq compile-angel-verbose nil)
-
-  (push "/init.el" compile-angel-excluded-path-suffixes)
-  (push "/early-init.el" compile-angel-excluded-path-suffixes)
-  (push "/eglot-config.el" compile-angel-excluded-path-suffixes)
-  (push "/dape-config.el" compile-angel-excluded-path-suffixes)
-  (push "/org-config.el" compile-angel-excluded-path-suffixes)
-
-  (compile-angel-exclude-directory (expand-file-name "modules" user-emacs-directory))
-
-  (with-eval-after-load "savehist"
-    (push (concat "/" (file-name-nondirectory savehist-file))
-          compile-angel-excluded-path-suffixes))
-
-  (with-eval-after-load "recentf"
-    (push (concat "/" (file-name-nondirectory recentf-save-file))
-          compile-angel-excluded-path-suffixes))
-
-  (with-eval-after-load "cus-edit"
-    (when (stringp custom-file)
-      (push (concat "/" (file-name-nondirectory custom-file))
-            compile-angel-excluded-path-suffixes)))
-
-  (compile-angel-on-load-mode 1))
 
 (use-package gcmh
   :config

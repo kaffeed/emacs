@@ -1,71 +1,27 @@
-;;; init-prog.el --- Programming, syntax, and LSP configurations -*- lexical-binding: t -*-
+;;; init-prog.el --- Generic programming setup: tree-sitter, diagnostics, LSP, debugging -*- lexical-binding: t -*-
+
+;;; Commentary:
+;; Language-agnostic tooling only.  Everything specific to one language
+;; (modes, servers, debug configs, keys) lives in init-lang.el.
+
+;;; Code:
+
+;;; ------------------------------------------------------------
+;;; Tree-sitter
+;;; ------------------------------------------------------------
+;; Emacs 31 registers grammar sources for its own ts-modes and remaps the
+;; classic modes listed here; missing grammars are installed on first use.
 
 (setq treesit-font-lock-level 4)
 (setq treesit-auto-install-grammar 'always)
-(setq treesit-language-source-alist
-      '((bash "https://github.com/tree-sitter/tree-sitter-bash" "v0.23.3")
-        (cmake "https://github.com/uyha/tree-sitter-cmake")
-        (css "https://github.com/tree-sitter/tree-sitter-css" "v0.23.2")
-        (go "https://github.com/tree-sitter/tree-sitter-go" "v0.23.4")
-        (html "https://github.com/tree-sitter/tree-sitter-html")
-        (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "v0.23.1")
-        (json "https://github.com/tree-sitter/tree-sitter-json")
-        (make "https://github.com/alemuller/tree-sitter-make")
-        (toml "https://github.com/tree-sitter/tree-sitter-toml")
-        (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
-        (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
-        (yaml "https://github.com/tree-sitter-grammars/tree-sitter-yaml" "v0.6.1")
-        (astro "https://github.com/virchau13/tree-sitter-astro")
-        (dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")
-        ))
+(setopt treesit-enabled-modes
+        '(c-ts-mode css-ts-mode js-ts-mode json-ts-mode typescript-ts-mode tsx-ts-mode
+          yaml-ts-mode go-ts-mode go-mod-ts-mode dockerfile-ts-mode bash-ts-mode
+          toml-ts-mode cmake-ts-mode))
 
-(setq major-mode-remap-alist
-      '((typescript-mode . typescript-ts-mode)
-        (js-mode . js-ts-mode)
-        (c-mode . c-ts-mode)
-        (css-mode . css-ts-mode)
-        (json-mode . json-ts-mode)
-        (yaml-mode . yaml-ts-mode)
-        (dockerfile-mode . dockerfile-ts-mode)
-        (go-mode . go-ts-mode)))
-
-(add-to-list 'auto-mode-alist '("\\.tsx\\'" . tsx-ts-mode))
-(add-to-list 'auto-mode-alist '("\\.ts\\'" . typescript-ts-mode))
-(add-to-list 'auto-mode-alist '("\\.jsx\\'" . tsx-ts-mode))
-(add-to-list 'auto-mode-alist '("\\.ya?ml\\'" . yaml-ts-mode))
-(define-derived-mode docker-compose-ts-mode yaml-ts-mode "Compose"
-  "YAML mode for docker-compose files.")
-(add-to-list 'auto-mode-alist
-             '("\\(?:docker-\\)?compose[^/]*\\.ya?ml\\'" . docker-compose-ts-mode))
-(add-to-list 'auto-mode-alist '("\\.xaml\\'" . nxml-mode))
-(add-to-list 'auto-mode-alist '("\\.csproj\\'" . nxml-mode))
-(add-to-list 'auto-mode-alist '("\\.go\\'" . go-ts-mode))
-(add-to-list 'auto-mode-alist '("go\\.mod\\'" . go-ts-mode))
-
-(use-package web-mode
-  :mode ("\\.cshtml\\'" "\\.razor\\'" "\\.html\\'")
-  :hook (web-mode . (lambda ()
-                      (when (and (buffer-file-name)
-                                 (string-match-p "\\.cshtml\\'\\|\\.razor\\'" (buffer-file-name)))
-                        (setq-local web-mode-engine "razor"))))
-  :custom
-  (web-mode-engines-alist '(("angular" . "\\.html\\'")))
-  (web-mode-markup-indent-offset 2)
-  (web-mode-code-indent-offset 4)
-  (web-mode-css-indent-offset 2)
-  (web-mode-enable-auto-pairing t)
-  (web-mode-enable-css-colorization t)
-  (web-mode-enable-current-element-highlight t))
-
-
-(when (< emacs-major-version 31)
-  (use-package markdown-ts-mode
-    :ensure nil
-    :defer t))
-
-(use-package astro-ts-mode
-  :straight (astro-ts-mode :type git :host github :repo "Sorixelle/astro-ts-mode" :branch "master")
-  :mode "\\.astro\\'")
+;;; ------------------------------------------------------------
+;;; Flymake
+;;; ------------------------------------------------------------
 
 (use-package flymake
   :straight (:type built-in)
@@ -79,39 +35,100 @@
   (flymake-no-changes-timeout 0.5)
   (flymake-fringe-indicator-position 'right-fringe))
 
-(load (expand-file-name "eglot-config.el" user-emacs-directory))
-(load (expand-file-name "dape-config.el" user-emacs-directory) t t)
+;;; ------------------------------------------------------------
+;;; Eglot (LSP)
+;;; ------------------------------------------------------------
+;; Servers are installed separately; see the language sections in init-lang.el.
 
-(use-package dotenv-mode
-  :mode ("\\.env\\'" "\\.env\\..*\\'" ".*\\.env\\'"))
+(use-package eglot
+  :straight (:type built-in)
+  :bind
+  (:map eglot-mode-map
+        ("C-c l r"   . eglot-rename)
+        ("C-c l a"   . eglot-code-actions)
+        ("C-c l f"   . eglot-format)
+        ("C-c l F"   . eglot-format-buffer)
+        ("C-c l d"   . eldoc)
+        ("C-c l R"   . eglot-reconnect)
+        ("C-c l q"   . eglot-shutdown)
+        ("C-c l Q"   . eglot-shutdown-all)
+        ("C-c l ."   . xref-find-definitions)
+        ("C-c l ,"   . xref-go-back)
+        ("C-c l ?"   . xref-find-references)
+        ("C-c l i"   . eglot-find-implementation)
+        ("C-c l t"   . eglot-find-typeDefinition)
+        ("C-c l /"   . xref-find-apropos))
 
-(use-package dockerfile-mode
-  :straight (:type git :host github :repo "spotify/dockerfile-mode")
-  :mode ("Dockerfile\\(\\..*\\)?\\'" "\\.dockerfile\\'" "\\(?:Container\\|Docker\\)file\\.[^/]*\\'"))
-
-(add-to-list 'auto-mode-alist '("Dockerfile\\(\\..*\\)?\\'" . dockerfile-ts-mode))
-(add-to-list 'auto-mode-alist '("\\.dockerfile\\'" . dockerfile-ts-mode))
-(add-to-list 'auto-mode-alist '("\\(?:Container\\|Docker\\)file\\.[^/]*\\'" . dockerfile-ts-mode))
-
-(use-package markdown-mode
-  :mode (("README\\.md\\'" . gfm-mode)
-         ("\\.md\\'" . markdown-mode)
-         ("\\.markdown\\'" . markdown-mode))
   :custom
-  (markdown-command "pandoc")
-  (markdown-fontify-code-blocks-natively t))
+  ;; Shut down the server when its last buffer is killed
+  (eglot-autoshutdown t)
+  ;; Boost performance: don't log events unless debugging
+  (eglot-events-buffer-size 0)
+  ;; Don't confirm when applying code actions
+  (eglot-confirm-server-initiated-edits nil)
+  ;; Disable blocking on server connection
+  (eglot-sync-connect nil)
+  ;; Disable noisy progress reports in echo area
+  (eglot-report-progress nil)
+  ;; Disable heavy server capabilities (highlighting on cursor move, inlay hints)
+  (eglot-ignored-server-capabilities '(:documentHighlightProvider
+                                       :inlayHintProvider
+                                       :semanticTokensProvider))
+  (eglot-documentation-renderer 'markdown-ts-view-mode)
+  (eglot-code-action-indications nil)
+  (eldoc-help-at-pt t)
+  (eldoc-echo-area-prefer-doc-buffer t)
 
-
-
-(use-package powershell
   :config
-  (add-hook 'powershell-mode-hook
-            (lambda ()
-              (ansi-color-for-comint-mode-on)
-              (setq comint-process-echoes t)))
-  (add-hook 'comint-output-filter-functions
-            'ansi-color-process-output))
+  ;; Integrate yasnippet with eglot via cape
+  (defun ss/eglot-capf ()
+    "Set up eglot completion with yasnippet and cape."
+    (setq-local completion-at-point-functions
+                (list (cape-capf-super
+                       #'eglot-completion-at-point
+                       #'yasnippet-capf)
+                      #'cape-file)))
+  (add-hook 'eglot-managed-mode-hook #'ss/eglot-capf))
+
+;; Yasnippet capf adapter - bridges yasnippet into capf/corfu
+(use-package yasnippet-capf
+  :after (yasnippet cape))
+
+;; Workspace symbol search through consult
+(use-package consult-eglot
+  :bind
+  ("M-s M-s" . consult-eglot-symbols))
+
+;;; ------------------------------------------------------------
+;;; Dape (debugging)
+;;; ------------------------------------------------------------
+;; Built-in configs cover the common cases (`netcoredbg', `dlv',
+;; `js-debug-node', ...).  Override at the `dape' prompt, e.g.
+;;   dlv :mode "test" :args ["-test.run" "TestFoo"]
+
+(use-package dape
+  :straight (:type git :host github :repo "svaante/dape")
+  :bind
+  (("C-c D d" . dape)
+   ("C-c D l" . dape-repl)
+   ("C-c D b" . dape-breakpoint-toggle)
+   ("C-c D B" . dape-breakpoint-remove-all)
+   ("C-c D c" . dape-continue)
+   ("C-c D n" . dape-next)
+   ("C-c D i" . dape-step-in)
+   ("C-c D o" . dape-step-out)
+   ("C-c D r" . dape-restart)
+   ("C-c D Q" . dape-quit)
+   ("C-c D w" . dape-watch-dwim)
+   ("C-c D e" . dape-evaluate-expression)
+   ("<f10>"   . dape))
+  :custom
+  (dape-buffer-window-arrangement 'right)
+  :config
+  ;; Show repl on start
+  (add-hook 'dape-start-hook (lambda () (save-excursion (dape-repl))))
+  ;; Auto-save before debugging
+  (add-hook 'dape-start-hook (lambda () (save-some-buffers t t))))
 
 (provide 'init-prog)
 ;;; init-prog.el ends here
-

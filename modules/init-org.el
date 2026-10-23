@@ -10,9 +10,10 @@
 ;; Simplified workflow focusing on:
 ;; - Single TODO sequence (TODO -> NEXT -> IN-PROGRESS -> REVIEW -> WAITING -> DONE)
 ;; - Two trees with the same layout (inbox, tasks, journal, roam):
-;;     ~/org/       private, git repo synced to a private remote (`ss/org-sync')
-;;     ~/org/work/  work, separate local-only git repo, ignored by ~/org.
-;;                  Must never leave the work laptop: never add a remote.
+;;     ~/org/       private git repo, remote on private GitHub
+;;     ~/org/work/  work git repo, ignored by ~/org, remote on the company
+;;                  server only.  Never push it anywhere private.
+;;   `ss/org-sync' syncs whichever of the two exist on this machine.
 ;; - Developer-centric tags and properties
 ;; - Clean dashboard agenda
 
@@ -42,23 +43,24 @@ Without this, clocking into a meeting or log entry turns it into a task."
       (apply #'call-process "git" nil t nil args))))
 
 (defun ss/org-sync ()
-  "Commit both org repos, then pull and push the private one.
-~/org/work/ is only committed: it has no remote and must never get one."
+  "Commit, pull and push each org repo present on this machine.
+Each repo only talks to its own remote; a repo without one is just committed."
   (interactive)
   (save-some-buffers t (lambda () (and buffer-file-name
                                        (file-in-directory-p buffer-file-name "~/org/"))))
-  (dolist (dir '("~/org/" "~/org/work/"))
-    (when (file-directory-p (expand-file-name ".git" dir))
-      (ss/org-git dir "add" "-A")
-      (ss/org-git dir "commit" "-q" "-m" (format "sync from %s" (system-name)))))
-  (cond
-   ((null (let ((default-directory "~/org/")) (process-lines "git" "remote")))
-    (message "org committed; ~/org has no remote yet, nothing pushed"))
-   ((and (zerop (ss/org-git "~/org/" "pull" "--rebase" "-q"))
-         (zerop (ss/org-git "~/org/" "push" "-q")))
-    (message "org synced"))
-   (t (pop-to-buffer "*org-sync*")
-      (user-error "Org sync failed, see *org-sync*"))))
+  (let (failed)
+    (dolist (dir '("~/org/" "~/org/work/"))
+      (when (file-directory-p (expand-file-name ".git" dir))
+        (ss/org-git dir "add" "-A")
+        (ss/org-git dir "commit" "-q" "-m" (format "sync from %s" (system-name)))
+        (when (and (let ((default-directory dir)) (process-lines "git" "remote"))
+                   (not (and (zerop (ss/org-git dir "pull" "--rebase" "-q"))
+                             (zerop (ss/org-git dir "push" "-q")))))
+          (push dir failed))))
+    (if (not failed)
+        (message "org synced")
+      (pop-to-buffer "*org-sync*")
+      (user-error "Org sync failed for %s, see *org-sync*" (string-join failed ", ")))))
 
 ;;; ------------------------------------------------------------
 ;;; Org-Mode Package Configuration

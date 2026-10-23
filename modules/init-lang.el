@@ -156,6 +156,27 @@
               ("C-c t r" . go-run)))
 
 ;;; ------------------------------------------------------------
+;;; Java
+;;; ------------------------------------------------------------
+;; LSP: jdtls on PATH (needs JDK 21+; on Windows the bin/ dir with jdtls.bat).
+;; Debugger: com.microsoft.java.debug.plugin-*.jar (microsoft/java-debug)
+;; in debug-adapters/java-debug/, loaded into jdtls as a bundle so dape's
+;; built-in `jdtls' config works.
+
+(add-hook 'java-ts-mode-hook #'eglot-ensure)
+
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs
+               ;; Function contact: the jar is looked up on each server start.
+               `(java-ts-mode
+                 . ,(lambda (_interactive)
+                      `("jdtls" :initializationOptions
+                        (:bundles ,(vconcat
+                                    (file-expand-wildcards
+                                     (locate-user-emacs-file
+                                      "debug-adapters/java-debug/com.microsoft.java.debug.plugin-*.jar")))))))))
+
+;;; ------------------------------------------------------------
 ;;; YAML, Docker, Compose, .env
 ;;; ------------------------------------------------------------
 ;; Requires: npm i -g yaml-language-server dockerfile-language-server-nodejs

@@ -55,7 +55,7 @@
         doom-themes-enable-italic t) ;; if nil, italics is universally disabled
   (doom-themes-visual-bell-config))
 
-(load-theme 'doom-gruvbox t)
+(load-theme 'doom-dracula t)
 ;; Load the theme
 
 (use-package indent-bars

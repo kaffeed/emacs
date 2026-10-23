@@ -17,7 +17,7 @@
 (setopt treesit-enabled-modes
         '(c-ts-mode css-ts-mode js-ts-mode json-ts-mode typescript-ts-mode tsx-ts-mode
           yaml-ts-mode go-ts-mode go-mod-ts-mode dockerfile-ts-mode bash-ts-mode
-          toml-ts-mode cmake-ts-mode))
+          toml-ts-mode cmake-ts-mode java-ts-mode))
 
 ;;; ------------------------------------------------------------
 ;;; Flymake

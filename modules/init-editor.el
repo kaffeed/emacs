@@ -102,42 +102,5 @@
     (when (file-directory-p dir)
       (project-remember-projects-under dir))))
 
-(use-package perspective
-  :demand t
-  :custom
-  (persp-mode-prefix-key (kbd "C-c x"))
-  (persp-state-default-file (expand-file-name "persp-state" user-emacs-directory))
-  (persp-show-modestring t)
-  :init
-  (persp-mode)
-  :config
-  (add-hook 'kill-emacs-hook #'persp-state-save)
-
-  (defun ss/project-persp-switch (dir)
-    "Switch to the project in DIR inside a perspective named after it."
-    (interactive (list (funcall project-prompter)))
-    (persp-switch (file-name-nondirectory (directory-file-name dir)))
-    (project-switch-project dir))
-
-  (keymap-set project-prefix-map "p" #'ss/project-persp-switch)
-
-  (defun ss/ibuffer-set-persp-filter-groups ()
-    "Set ibuffer filter groups based on active perspectives."
-    (setq ibuffer-filter-groups
-          (append
-           (mapcar (lambda (name)
-                     (let* ((persp (persp-get-by-name name))
-                            (buf-names (mapcar #'buffer-name (persp-buffers persp))))
-                       (list name
-                             `(predicate . (member (buffer-name) ',buf-names)))))
-                   (persp-names))
-           '(("Other" (name . ".*")))))
-    (ibuffer-update nil t))
-
-  (add-hook 'ibuffer-hook #'ss/ibuffer-set-persp-filter-groups)
-
-  (with-eval-after-load 'consult
-    (add-to-list 'consult-buffer-sources 'persp-consult-source)))
-
 (provide 'init-editor)
 ;;; init-editor.el ends here

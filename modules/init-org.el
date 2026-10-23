@@ -9,7 +9,10 @@
 
 ;; Simplified workflow focusing on:
 ;; - Single TODO sequence (TODO -> NEXT -> IN-PROGRESS -> REVIEW -> WAITING -> DONE)
-;; - Consolidated files (work, personal, inbox, journal)
+;; - Two trees with the same layout (inbox, tasks, journal, roam):
+;;     ~/org/       private, git repo synced to a private remote (`ss/org-sync')
+;;     ~/org/work/  work, separate local-only git repo, ignored by ~/org.
+;;                  Must never leave the work laptop: never add a remote.
 ;; - Developer-centric tags and properties
 ;; - Clean dashboard agenda
 
@@ -25,12 +28,37 @@
   (auto-fill-mode 0)
   (visual-line-mode 1))
 
-(defun ss/org-journal-find-location ()
-  "Find or create journal entry for today's date."
-  (org-journal-new-entry t)
-  (unless (eq org-journal-file-type 'daily)
-    (org-narrow-to-subtree))
-  (goto-char (point-max)))
+(defun ss/org-clock-in-state (state)
+  "Switch to IN-PROGRESS on clock-in, but only for headings that are tasks.
+Without this, clocking into a meeting or log entry turns it into a task."
+  (when state "IN-PROGRESS"))
+
+(defun ss/org-git (dir &rest args)
+  "Run git with ARGS in DIR, log to *org-sync*, return the exit code."
+  (with-current-buffer (get-buffer-create "*org-sync*")
+    (let ((default-directory dir))
+      (goto-char (point-max))
+      (insert "\n$ git " (string-join args " ") "  (" dir ")\n")
+      (apply #'call-process "git" nil t nil args))))
+
+(defun ss/org-sync ()
+  "Commit both org repos, then pull and push the private one.
+~/org/work/ is only committed: it has no remote and must never get one."
+  (interactive)
+  (save-some-buffers t (lambda () (and buffer-file-name
+                                       (file-in-directory-p buffer-file-name "~/org/"))))
+  (dolist (dir '("~/org/" "~/org/work/"))
+    (when (file-directory-p (expand-file-name ".git" dir))
+      (ss/org-git dir "add" "-A")
+      (ss/org-git dir "commit" "-q" "-m" (format "sync from %s" (system-name)))))
+  (cond
+   ((null (let ((default-directory "~/org/")) (process-lines "git" "remote")))
+    (message "org committed; ~/org has no remote yet, nothing pushed"))
+   ((and (zerop (ss/org-git "~/org/" "pull" "--rebase" "-q"))
+         (zerop (ss/org-git "~/org/" "push" "-q")))
+    (message "org synced"))
+   (t (pop-to-buffer "*org-sync*")
+      (user-error "Org sync failed, see *org-sync*"))))
 
 ;;; ------------------------------------------------------------
 ;;; Org-Mode Package Configuration
@@ -41,7 +69,8 @@
   :bind (;; Global org shortcuts
          ("C-c a" . org-agenda)
          ("C-c l" . org-store-link)
-         ("C-c C-c" . org-capture)
+         ("C-c c" . org-capture)
+         ("C-c n s" . ss/org-sync)
          ;; Everything else in org-mode-map uses org's defaults
          :map org-mode-map
          ("C-c C-a" . org-archive-subtree))
@@ -50,10 +79,8 @@
   ;; Set default directory for org files
   (org-directory "~/org")
 
-  ;; Define which files to include in the agenda
-  (org-agenda-files '("~/org/inbox.org"
-                      "~/org/work.org"
-                      "~/org/personal.org"))
+  ;; Every .org file in both trees; work/ is absent on private machines
+  (org-agenda-files (seq-filter #'file-directory-p '("~/org/" "~/org/work/")))
 
   ;; Agenda settings
   (org-agenda-start-with-log-mode t)
@@ -75,7 +102,7 @@
    "%50ITEM(Task) %TODO %PRIORITY %10Effort(Effort){:} %10CLOCKSUM(Clocked) %6STORY_POINTS(SP) %12DEVOPS_ID(Azure) %TAGS")
 
   ;; Automatically change to IN-PROGRESS when clocking in
-  (org-clock-in-switch-to-state "IN-PROGRESS")
+  (org-clock-in-switch-to-state #'ss/org-clock-in-state)
 
   ;; Clock persistence - remember running clocks across Emacs sessions
   (org-clock-persist t)
@@ -104,8 +131,7 @@
 
   ;; Refile targets
   (org-refile-targets '((nil :maxlevel . 3)
-                        (org-agenda-files :maxlevel . 2)
-                        ("~/org/archive.org" :maxlevel . 1)))
+                        (org-agenda-files :maxlevel . 2)))
 
   (org-refile-use-outline-path 'file)
   (org-outline-path-complete-in-steps nil)
@@ -150,27 +176,41 @@
                    (org-agenda-sorting-strategy '(priority-down effort-up))))
             (tags "LEVEL=2"
                   ((org-agenda-overriding-header "Inbox (Needs Processing)")
-                   (org-agenda-files '("~/org/inbox.org"))))))))
+                   (org-agenda-files (seq-filter #'file-exists-p
+                                                 '("~/org/inbox.org" "~/org/work/inbox.org")))))))))
 
-  ;; Simplified Capture Templates
-
+  ;; Capture: lowercase keys are private, the "w" prefix is work
   (setq org-capture-templates
-        '(("i" "Inbox - Quick Capture" entry (file "~/org/inbox.org")
+        '(("i" "Inbox task" entry (file "~/org/inbox.org")
            "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n" :empty-lines 1)
-          
-          ("t" "Work Task" entry (file "~/org/work.org")
+
+          ("n" "Inbox note" entry (file "~/org/inbox.org")
+           "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n" :empty-lines 1)
+
+          ("j" "Journal" entry (file+olp+datetree "~/org/journal.org")
+           "* %<%H:%M> %?\n" :empty-lines 1)
+
+          ("w" "Work")
+
+          ("wi" "Inbox task" entry (file "~/org/work/inbox.org")
+           "* TODO %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n" :empty-lines 1)
+
+          ("wn" "Inbox note" entry (file "~/org/work/inbox.org")
+           "* %?\n:PROPERTIES:\n:CREATED: %U\n:END:\n" :empty-lines 1)
+
+          ("wt" "Task" entry (file "~/org/work/work.org")
            "* TODO [#B] %?\n:PROPERTIES:\n:CREATED: %U\n:DEVOPS_ID: \n:EFFORT: 2:00\n:END:\n%a\n" :empty-lines 1)
-          
-          ("b" "Bug" entry (file "~/org/work.org")
+
+          ("wb" "Bug" entry (file "~/org/work/work.org")
            "* TODO [#A] Bug: %? :bug:\n:PROPERTIES:\n:CREATED: %U\n:DEVOPS_ID: \n:END:\n** Reproduction Steps\n1. \n\n** Expected Behavior\n\n** Actual Behavior\n" :empty-lines 1)
-          
-          ("m" "Meeting Notes" plain (function ss/org-journal-find-location)
-           "** %(format-time-string \"%H:%M\") - Meeting: %^{Meeting Title} :meeting:\n*** Notes\n%?\n*** Action Items\n- [ ] \n"
-           :clock-in :clock-resume :empty-lines 1)
-          
-          ("j" "Journal / Time Track" plain (function ss/org-journal-find-location)
-           "** %(format-time-string \"%H:%M\") - %? :journal:\n"
-           :clock-in :clock-resume :empty-lines 1))))
+
+          ("wm" "Meeting" entry (file+olp+datetree "~/org/work/journal.org")
+           "* %<%H:%M> Meeting: %^{Meeting Title} :meeting:\n** Notes\n%?\n** Action Items\n- [ ] \n"
+           :clock-in t :clock-resume t :empty-lines 1)
+
+          ("wj" "Log / time track" entry (file+olp+datetree "~/org/work/journal.org")
+           "* %<%H:%M> %? :journal:\n"
+           :clock-in t :clock-resume t :empty-lines 1))))
 
 ;;; ------------------------------------------------------------
 ;;; Org-Pomodoro
@@ -185,26 +225,20 @@
   (org-pomodoro-keep-killed-pomodoro-time t))
 
 ;;; ------------------------------------------------------------
-;;; Org-Journal
-;;; ------------------------------------------------------------
-(use-package org-journal
-  :after org
-  :bind ("C-c j" . org-journal-new-entry)
-  :custom
-  (org-journal-dir "~/org/")
-  (org-journal-file-type 'monthly)
-  (org-journal-file-format "%Y-%m.org")
-  (org-journal-date-format "%A, %d %B %Y")
-  (org-journal-enable-agenda-integration t)
-  (org-journal-hide-entries-p nil))
-
-;;; ------------------------------------------------------------
 ;;; Org-roam
 ;;; ------------------------------------------------------------
 (use-package org-roam
   :custom
-  (org-roam-directory "~/org/roam")
+  ;; One graph over both trees; links into work/ break on private machines
+  (org-roam-directory "~/org/")
   (org-roam-completion-everywhere t)
+  (org-roam-capture-templates
+   '(("p" "private" plain "%?"
+      :target (file+head "roam/%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+      :unnarrowed t)
+     ("w" "work" plain "%?"
+      :target (file+head "work/roam/%<%Y%m%d%H%M%S>-${slug}.org" "#+title: ${title}\n")
+      :unnarrowed t)))
   :bind (("C-c n l" . org-roam-buffer-toggle)
          ("C-c n f" . org-roam-node-find)
          ("C-c n i" . org-roam-node-insert)

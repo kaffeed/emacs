@@ -166,7 +166,6 @@
    ("C-v" . ss/scroll-half-page-down)
    ("M-v" . ss/scroll-half-page-up)
    ("C-x C-c" . ss/safe-kill-emacs)
-   ("C-c c" . compile)
    ("M-n" . next-error)
    ("M-p" . previous-error)
    ("<f5>" . revert-buffer)

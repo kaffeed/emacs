@@ -74,7 +74,7 @@
 
   :config
   (setq kill-do-not-save-duplicates t)
-  (setq savehist-additional-variables '(search-ring regexp-search-ring kill-ring))
+  (setq savehist-additional-variables '(search-ring regexp-search-ring))
   (setq reb-re-syntax 'string)
   (setq ffap-machine-p-known 'reject)
   (setq window-combination-resize t)

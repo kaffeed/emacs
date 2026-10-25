@@ -22,14 +22,12 @@ Otherwise, opens in the directory of the current file."
             (w32-shell-execute "open" "powershell.exe"
                                (format "-NoExit -Command \"Set-Location '%s'\"" win-dir))))))
      (*is-a-linux*
-      (cond
-       ((executable-find "gnome-terminal")
-        (start-process "external-terminal" nil "gnome-terminal" "--working-directory" dir))
-       ((executable-find "konsole")
-        (start-process "external-terminal" nil "konsole" "--workdir" dir))
-       ((executable-find "xterm")
-        (start-process "external-terminal" nil "xterm" "-e" (format "cd '%s' && bash" dir)))
-       (t (message "No supported terminal found"))))
+      ;; The terminal inherits `default-directory', no per-terminal flags needed
+      (if-let* ((term (seq-find #'executable-find
+                                '("alacritty" "konsole" "gnome-terminal" "xterm"))))
+          (let ((default-directory dir))
+            (start-process "external-terminal" nil term))
+        (message "No supported terminal found")))
      ((eq system-type 'darwin)
       (start-process "external-terminal" nil "open" "-a" "Terminal" dir)))))
 

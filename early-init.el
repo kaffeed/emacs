@@ -10,6 +10,9 @@
 ;; Disable package.el to use straight.el instead.
 (setq package-enable-at-startup nil)
 
+;; Third-party native-comp warnings are noise; still logged in *Async-native-compile-log*.
+(setq native-comp-async-report-warnings-errors 'silent)
+
 ;; Disables unused UI Elements early to avoid flickering
 (push '(menu-bar-lines . 0) default-frame-alist)
 (push '(tool-bar-lines . 0) default-frame-alist)

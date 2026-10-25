@@ -52,10 +52,14 @@ Each repo only talks to its own remote; a repo without one is just committed."
       (when (file-directory-p (expand-file-name ".git" dir))
         (ss/org-git dir "add" "-A")
         (ss/org-git dir "commit" "-q" "-m" (format "sync from %s" (system-name)))
-        (when (and (let ((default-directory dir)) (process-lines "git" "remote"))
-                   (not (and (zerop (ss/org-git dir "pull" "--rebase" "-q"))
-                             (zerop (ss/org-git dir "push" "-q")))))
-          (push dir failed))))
+        (when (let ((default-directory dir)) (process-lines "git" "remote"))
+          (cond
+           ((not (zerop (ss/org-git dir "pull" "--rebase" "-q")))
+            ;; Never leave conflict markers behind for the next sync to commit
+            (ss/org-git dir "rebase" "--abort")
+            (push dir failed))
+           ((not (zerop (ss/org-git dir "push" "-q")))
+            (push dir failed))))))
     (if (not failed)
         (message "org synced")
       (pop-to-buffer "*org-sync*")

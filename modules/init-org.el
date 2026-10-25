@@ -141,6 +141,9 @@ Each repo only talks to its own remote; a repo without one is just committed."
   ;; Habit tracking
   (org-habit-graph-column 60)
 
+  ;; No "last stored" bookmark: it copies note text into the bookmarks file
+  (org-capture-bookmark nil)
+
   :config
   ;; Save org buffers after refiling
   (advice-add 'org-refile :after 'org-save-all-org-buffers)

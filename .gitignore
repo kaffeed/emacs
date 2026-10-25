@@ -64,3 +64,6 @@ custom.el
 # Machine-local state
 /persp-state
 /var/
+
+# Bookmarks hold file paths and note text
+/bookmarks

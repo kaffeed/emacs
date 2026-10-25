@@ -215,7 +215,7 @@ FALLBACK is a contact list, or a function returning one."
                               [".gitlab-ci.yml" ".gitlab-ci.yaml"])))))
 
 (use-package dotenv-mode
-  :mode ("\\.env\\'" "\\.env\\..*\\'" ".*\\.env\\'"))
+  :mode ("\\.env\\'" "\\.env\\..*\\'"))
 
 ;;; ------------------------------------------------------------
 ;;; Markdown, Mermaid

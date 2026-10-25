@@ -30,7 +30,9 @@
   "Return an eglot contact: ngserver if the project has angular.json, else FALLBACK."
   (lambda (_interactive)
     (let ((root (when-let* ((pr (project-current))) (project-root pr)))
-          (probe (concat ".," (expand-file-name "npm/node_modules" (getenv "APPDATA")))))
+          (probe (if-let* ((appdata (getenv "APPDATA")))
+                     (concat ".," (expand-file-name "npm/node_modules" appdata))
+                   ".")))
       (if (and root (file-exists-p (expand-file-name "angular.json" root)))
           (list "ngserver" "--stdio" "--tsProbeLocations" probe "--ngProbeLocations" probe)
         fallback))))

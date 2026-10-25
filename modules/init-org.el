@@ -146,7 +146,7 @@ Each repo only talks to its own remote; a repo without one is just committed."
 
   :config
   ;; Save org buffers after refiling
-  (advice-add 'org-refile :after 'org-save-all-org-buffers)
+  (advice-add 'org-refile :after (lambda (&rest _) (org-save-all-org-buffers)))
 
   ;; Load org-habit module
   (require 'org-habit)

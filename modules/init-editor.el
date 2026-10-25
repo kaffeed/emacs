@@ -6,7 +6,7 @@
 
 (use-package undo-fu-session
   :config
-  (setq undo-fu-session-incompatible-files '("/COMMIT_EDITMSG\\'" "/git-rebase-todo\\'"))
+  (setq undo-fu-session-incompatible-files '("/COMMIT_EDITMSG\\'" "/git-rebase-todo\\'" "\\.env\\'" "\\.env\\."))
   (undo-fu-session-global-mode))
 
 (use-package dtrt-indent

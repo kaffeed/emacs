@@ -67,3 +67,6 @@ custom.el
 
 # Bookmarks hold file paths and note text
 /bookmarks
+
+# Undo history holds full file contents
+/undo-fu-session/

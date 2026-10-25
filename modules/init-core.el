@@ -61,8 +61,7 @@
   :init
   ;; Only files/processes: Windows clipboard must stay utf-16le
   (prefer-coding-system 'utf-8)
-  (setq-default bidi-display-reordering 'left-to-right
-                bidi-paragraph-direction 'left-to-right)
+  (setq-default bidi-paragraph-direction 'left-to-right)
   (setq bidi-inhibit-bpa t)
   (setq redisplay-skip-fontification-on-input t)
   (setq read-process-output-max (* 4 1024 1024))

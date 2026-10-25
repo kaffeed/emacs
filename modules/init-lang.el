@@ -52,10 +52,6 @@ FALLBACK is a contact list, or a function returning one."
 
 (use-package web-mode
   :mode ("\\.cshtml\\'" "\\.razor\\'" "\\.html\\'")
-  :hook (web-mode . (lambda ()
-                      (when (and (buffer-file-name)
-                                 (string-match-p "\\.cshtml\\'\\|\\.razor\\'" (buffer-file-name)))
-                        (setq-local web-mode-engine "razor"))))
   :custom
   (web-mode-engines-alist '(("angular" . "\\.html\\'")))
   (web-mode-markup-indent-offset 2)
@@ -148,12 +144,7 @@ FALLBACK is a contact list, or a function returning one."
                 (plist-put (default-value 'eglot-workspace-configuration) :gopls
                            '(:usePlaceholders t
                              :staticcheck t
-                             :analyses (:unusedparams t :shadow t :fieldalignment t)
-                             :hints (:assignVariableTypes t
-                                     :compositeLiteralFields t
-                                     :functionTypeParameters t
-                                     :parameterNames t
-                                     :rangeVariableTypes t)))))
+                             :analyses (:unusedparams t :shadow t :fieldalignment t)))))
 
 (use-package gotest
   :bind (:map go-ts-mode-map
@@ -212,8 +203,6 @@ FALLBACK is a contact list, or a function returning one."
                              :schemas
                              (:https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.31.0-standalone-strict/all.json
                               ["/*.k8s.yaml" "/*.k8s.yml" "/kubernetes/**/*.yaml" "/k8s/**/*.yaml" "/manifests/**/*.yaml"]
-                              :https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json
-                              ["docker-compose.yaml" "docker-compose.yml" "compose.yaml" "compose.yml"]
                               :https://json.schemastore.org/github-workflow.json
                               [".github/workflows/*.yaml" ".github/workflows/*.yml"]
                               :https://json.schemastore.org/github-action.json

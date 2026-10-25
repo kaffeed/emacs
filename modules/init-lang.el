@@ -27,7 +27,8 @@
 (add-hook 'web-mode-hook #'eglot-ensure)
 
 (defun ss/eglot-angular-or (fallback)
-  "Return an eglot contact: ngserver if the project has angular.json, else FALLBACK."
+  "Return an eglot contact: ngserver if the project has angular.json, else FALLBACK.
+FALLBACK is a contact list, or a function returning one."
   (lambda (_interactive)
     (let ((root (when-let* ((pr (project-current))) (project-root pr)))
           (probe (if-let* ((appdata (getenv "APPDATA")))
@@ -35,14 +36,19 @@
                    ".")))
       (if (and root (file-exists-p (expand-file-name "angular.json" root)))
           (list "ngserver" "--stdio" "--tsProbeLocations" probe "--ngProbeLocations" probe)
-        fallback))))
+        (if (functionp fallback) (funcall fallback) fallback)))))
 
 (with-eval-after-load 'eglot
   (add-to-list 'eglot-server-programs
                `(typescript-ts-mode
                  . ,(ss/eglot-angular-or '("typescript-language-server" "--stdio"))))
   (add-to-list 'eglot-server-programs
-               `(web-mode . ,(ss/eglot-angular-or '("rzls" "--logLevel" "Information")))))
+               `(web-mode
+                 . ,(ss/eglot-angular-or
+                     (lambda ()
+                       (if (string-match-p "\\.html\\'" (or buffer-file-name ""))
+                           '("vscode-html-language-server" "--stdio")
+                         '("rzls" "--logLevel" "Information")))))))
 
 (use-package web-mode
   :mode ("\\.cshtml\\'" "\\.razor\\'" "\\.html\\'")
